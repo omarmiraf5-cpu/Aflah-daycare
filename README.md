@@ -21,6 +21,19 @@ assets/
   images/            hero image, logo, emblem, favicon, touch icon
 ```
 
+## Homepage design samples
+
+`samples/` holds three homepage designs for choosing a final look. Each one follows the same section layout as the reference site (littlemiracleslearning.ca).
+
+| File | Style |
+| --- | --- |
+| `samples/index.html` | Gallery comparing all three samples |
+| `samples/sample-1-bright.html` | **Bright & Playful**: closest to the reference, with white sections, rainbow lettering and yellow buttons |
+| `samples/sample-2-heritage.html` | **Heritage Elegance**: navy and gold, Islamic star patterns, arch-shaped photos and Arabic section names |
+| `samples/sample-3-pastel.html` | **Soft Pastel**: mint, peach and lavender, blob-shaped photos and illustrated icons |
+
+The photos in the samples are crops of the logo artwork and are placeholders only. Replace them with real photos of the centre.
+
 ## Preview locally
 
 Open `index.html` in a browser, or run a small local server:
