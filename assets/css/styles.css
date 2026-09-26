@@ -1035,9 +1035,17 @@ ol {
 }
 
 .value h3 {
-  margin: 0 0 0.4rem;
+  margin: 0;
   font-size: 1.35rem;
   font-weight: 500;
+}
+
+.value__tr {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--c-ink);
 }
 
 .value p {

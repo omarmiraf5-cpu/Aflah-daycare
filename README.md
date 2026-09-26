@@ -9,7 +9,7 @@ It is plain HTML, CSS and a little JavaScript. There is no build step and no fra
 | File | What's on it |
 | --- | --- |
 | `index.html` | Home: photo hero with Enroll Now, three highlight cards, about with a counting badge, our value, program cards, Join Us banner, value circles, teachers, why choose us |
-| `about.html` | Our story and the meaning of "Aflah", the tree-of-life logo story, mission and vision, six core values (compassion, happiness, inclusion, respect, excellence and trust), our teachers |
+| `about.html` | Our story and the meaning of "Aflah", the tree-of-life logo story, mission and vision, six core values (Raḥmah, Saʿādah, Shumūliyyah, Adab, Iḥsān, Amānah), our teachers |
 | `programs.html` | Seedlings (infants), Sprouts (toddlers), Saplings (preschool) and Branches (school age), everyday enrichment, full daily schedule |
 | `admissions.html` | Registration: four enrollment steps, tuition and fees, what to bring, FAQ, waitlist form |
 | `contact.html` | Address, phone, email and hours, contact form, what to expect on a tour |
@@ -78,4 +78,4 @@ After that, every push to the repository's default branch redeploys the live sit
 
 The photos on the site (`assets/images/shelf.jpg`, `letters.jpg`, `window.jpg`, `toys.jpg`, `books.jpg` and `lamps.jpg`) are crops of the logo artwork and are placeholders only. Replace them with real photos of the centre, keeping the same file names, and every page picks them up.
 
-The Arabic writing around the top of the logo ring has been removed, and the site text uses no Arabic script. The Arabic alphabet posters on the classroom wall are kept on purpose. The original logo artwork is in the git history.
+The logo and classroom artwork are used exactly as supplied, including their Arabic writing. The page text itself uses no Arabic script.
