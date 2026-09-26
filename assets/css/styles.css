@@ -1634,6 +1634,79 @@ ol {
   transform: none;
 }
 
+/* Bouncy icons
+   Icons pop in with a spring when they scroll into view, hop now and then
+   (taking turns along a row), and boing when a card is hovered or tapped.
+   ========================================================================== */
+
+.icon-circle,
+.step__num,
+.value__icon svg {
+  transform-origin: 50% 100%;
+  animation: icon-hop 3.6s ease-in-out var(--hop-delay, 0s) infinite;
+}
+
+.js .is-in .icon-circle,
+.js .is-in .step__num,
+.js .is-in .value__icon svg,
+.js .is-in.step .step__num {
+  animation:
+    icon-pop 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--delay, 0s) + 0.15s) both,
+    icon-hop 3.6s ease-in-out calc(var(--hop-delay, 0s) + 1.2s) infinite;
+}
+
+:is(.feature-card, .icon-list__item, .contact-card, .value, .step):nth-child(2) { --hop-delay: 0.45s; }
+:is(.feature-card, .icon-list__item, .contact-card, .value, .step):nth-child(3) { --hop-delay: 0.9s; }
+:is(.feature-card, .icon-list__item, .contact-card, .value, .step):nth-child(4) { --hop-delay: 1.35s; }
+:is(.feature-card, .icon-list__item, .contact-card, .value, .step):nth-child(5) { --hop-delay: 1.8s; }
+:is(.feature-card, .icon-list__item, .contact-card, .value, .step):nth-child(6) { --hop-delay: 2.25s; }
+
+.feature-card:hover .icon-circle,
+.icon-list__item:hover .icon-circle,
+.contact-card:hover .icon-circle,
+.step:hover .step__num,
+.value:hover .value__icon svg,
+.js .is-in .feature-card:hover .icon-circle,
+.js .is-in .icon-list__item:hover .icon-circle,
+.js .is-in.feature-card:hover .icon-circle,
+.js .is-in.contact-card:hover .icon-circle,
+.js .is-in.step:hover .step__num,
+.js .is-in.value:hover .value__icon svg {
+  animation: icon-boing 0.8s cubic-bezier(0.28, 0.84, 0.42, 1);
+}
+
+.btn:hover .icon,
+.program-nav a:hover svg {
+  transform-origin: 50% 100%;
+  animation: icon-boing 0.7s cubic-bezier(0.28, 0.84, 0.42, 1);
+}
+
+@keyframes icon-pop {
+  0% { opacity: 0; transform: scale(0.2); }
+  55% { opacity: 1; transform: scale(1.18); }
+  75% { transform: scale(0.93); }
+  90% { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes icon-hop {
+  0%, 62%, 100% { transform: translateY(0) scale(1, 1); }
+  68% { transform: translateY(0) scale(1.1, 0.9); }
+  76% { transform: translateY(-12px) scale(0.94, 1.07); }
+  84% { transform: translateY(0) scale(1.06, 0.94); }
+  90% { transform: translateY(-4px) scale(1, 1); }
+  95% { transform: translateY(0) scale(1, 1); }
+}
+
+@keyframes icon-boing {
+  0% { transform: translateY(0) scale(1, 1) rotate(0); }
+  20% { transform: translateY(0) scale(1.16, 0.84); }
+  42% { transform: translateY(-18px) scale(0.9, 1.1) rotate(-7deg); }
+  62% { transform: translateY(0) scale(1.1, 0.9) rotate(4deg); }
+  78% { transform: translateY(-6px) scale(0.97, 1.03) rotate(0); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
 /* Responsive
    ========================================================================== */
 
