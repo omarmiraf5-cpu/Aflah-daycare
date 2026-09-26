@@ -1,6 +1,6 @@
 // Admin (director) portal: dashboard, children, staff, attendance, timesheets,
-// staff hours, payments and incident reviews.
-import { dayStr, ROOMS } from "./data.js";
+// staff hours, payments, incident reviews and settings.
+import { dayStr, ROOMS, browserPosition, fmtDistance } from "./data.js";
 import {
   $, $$, esc, icon, toast, openDialog, confirmDialog, field, options, emptyState, startPortal,
   fmtMoney, fmtDay, fmtClock, fmtHours, fmtDateTime, parseDay, addDays, mondayOf, hoursBetween,
@@ -42,9 +42,9 @@ const BAL_STATUS = { overdue: ["Overdue", "c-red"], due: ["Due", "c-orange"], pa
 async function renderDashboard(ctx) {
   const { api } = ctx;
   const today = dayStr();
-  const [children, staff, attendance, shifts, incidents, charges, payments] = await Promise.all([
+  const [children, staff, attendance, shifts, incidents, charges, payments, settings] = await Promise.all([
     api.listChildren(), api.listStaff(), api.listAttendance(today), api.listShifts({ from: addDays(new Date(), -7).toISOString() }),
-    api.listIncidents(), api.listCharges(), api.listPayments(),
+    api.listIncidents(), api.listCharges(), api.listPayments(), api.getSettings().catch(() => ({})),
   ]);
   if (!ctx.isCurrent()) return;
   const enrolled = children.filter((c) => c.status === "enrolled");
@@ -59,6 +59,7 @@ async function renderDashboard(ctx) {
   const bal = balances(children, charges, payments);
   const outstanding = bal.reduce((s, b) => s + Math.max(0, b.balance), 0);
   const overdue = bal.filter((b) => b.status === "overdue").sort((a, b) => b.balance - a.balance);
+  const siteMissing = settings.require_on_site !== false && (settings.site_lat == null || settings.site_lng == null);
   ctx.setCount("incidents", openIncidents.length);
   ctx.setCount("staff", pending.length);
 
@@ -99,8 +100,9 @@ async function renderDashboard(ctx) {
       <div class="stack">
         <section class="card">
           <div class="card__head"><h2>Needs your attention</h2></div>
-          ${!pending.length && !openIncidents.length && !overdue.length ? emptyState("check", "All caught up. Nothing needs your attention.") : ""}
+          ${!siteMissing && !pending.length && !openIncidents.length && !overdue.length ? emptyState("check", "All caught up. Nothing needs your attention.") : ""}
           <ul class="list" id="attention">
+            ${siteMissing ? `<li><span class="stat__icon c-orange" style="width: 36px; height: 36px; border-radius: 10px;">${icon("pin")}</span><div class="list__main"><strong>Set the daycare's location</strong><small>Staff can't sign in or out until it's set</small></div><a class="btn btn--sm" href="#settings">Set it</a></li>` : ""}
             ${pending.map((p) => `<li>${avatar(p.full_name || p.email, p.id)}<div class="list__main"><strong>${esc(p.full_name || p.email)}</strong><small>New staff account waiting for approval</small></div><button class="btn btn--sm" type="button" data-approve="${p.id}">Approve</button></li>`).join("")}
             ${openIncidents.slice(0, 5).map((i) => `<li><span class="stat__icon c-orange" style="width: 36px; height: 36px; border-radius: 10px;">${icon("alert")}</span><div class="list__main"><strong>Incident: ${esc(i.child_id ? childName(byId.get(i.child_id)) : "No specific child")}</strong><small>${fmtDateTime(i.occurred_at)} · ${esc(staffById.get(i.reported_by)?.full_name || "")}</small></div><button class="btn btn--ghost btn--sm" type="button" data-incident="${i.id}">Review</button></li>`).join("")}
             ${overdue.slice(0, 5).map((b) => `<li><span class="stat__icon c-red" style="width: 36px; height: 36px; border-radius: 10px;">${icon("wallet")}</span><div class="list__main"><strong>${esc(childName(b.child))}</strong><small>${fmtMoney(b.overdue)} overdue · ${esc(b.child.guardian_name || "")}</small></div><a class="btn btn--ghost btn--sm" href="#payments">View</a></li>`).join("")}
@@ -701,6 +703,129 @@ async function renderIncidents(ctx) {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Settings: staff sign in and out only at the daycare
+// ---------------------------------------------------------------------------
+
+const RADII = [50, 100, 150, 200, 300, 500];
+
+async function renderSettings(ctx) {
+  const { api } = ctx;
+  const settings = await api.getSettings();
+  if (!ctx.isCurrent()) return;
+  ctx.setHeader("Settings", "Where staff can sign in and out");
+  const radius = settings.site_radius_m || 150;
+  ctx.view.innerHTML = `
+    <div class="grid-2 settings">
+      <section class="card">
+        <div class="card__head"><h2>Sign in only at the daycare</h2></div>
+        <form class="site-form" id="site-form" novalidate>
+          <p class="muted">When this is on, staff can sign in and out of their shifts, and sign children in and out, only while their phone or tablet is at the daycare. Its location is checked each time. You can still correct times from anywhere.</p>
+          <label class="check"><input type="checkbox" name="require_on_site"${settings.require_on_site !== false ? " checked" : ""}> Only allow sign in and sign out at the daycare</label>
+          <div class="form-section">Daycare location</div>
+          <div class="site-form__here">
+            <button class="btn btn--ghost" type="button" data-here>${icon("locate")}Use my current location</button>
+            <p class="hint" id="here-hint">Stand inside the daycare and tap this. Or, in Google Maps, right-click (or press and hold) the building, tap the numbers to copy them, and paste them into Latitude.</p>
+          </div>
+          <div class="form-grid">
+            ${field("Latitude", `<input name="site_lat" inputmode="decimal" autocomplete="off" placeholder="e.g. 43.65320" value="${settings.site_lat ?? ""}">`)}
+            ${field("Longitude", `<input name="site_lng" inputmode="decimal" autocomplete="off" placeholder="e.g. -79.38320" value="${settings.site_lng ?? ""}">`)}
+            ${field("Counts as at the daycare within", `<select name="site_radius_m">${options(RADII.map((m) => [m, `${m} m of that spot${m === 150 ? " (recommended)" : ""}`]), radius)}</select>`, "full")}
+          </div>
+          <p class="hint">Phones are usually accurate to 5 to 50 m, less indoors. If staff inside the building are told they're too far away, choose a bigger distance.</p>
+          <p class="form-error" role="alert"></p>
+          <div><button class="btn btn--yellow" type="submit">${icon("check")}Save settings</button></div>
+        </form>
+      </section>
+      <section class="card card--flush">
+        <div class="card__head"><h2>On the map</h2><a class="btn btn--ghost btn--sm" id="map-link" target="_blank" rel="noopener" hidden>Open in maps</a></div>
+        <div class="site-map" id="site-map"></div>
+      </section>
+    </div>`;
+
+  const form = $("#site-form");
+  const error = $(".form-error", form);
+  const read = () => {
+    const lat = form.site_lat.value.trim() === "" ? null : Number(form.site_lat.value);
+    const lng = form.site_lng.value.trim() === "" ? null : Number(form.site_lng.value);
+    return { lat, lng, valid: lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0) };
+  };
+  const drawMap = () => {
+    const { lat, lng, valid } = read();
+    $("#map-link").hidden = !valid;
+    if (!valid) {
+      $("#site-map").innerHTML = emptyState("pin", "Set the daycare's location to see it on the map.");
+      return;
+    }
+    const d = 0.004;
+    const src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - d * 1.4},${lat - d},${lng + d * 1.4},${lat + d}&layer=mapnik&marker=${lat},${lng}`;
+    $("#map-link").href = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=18/${lat}/${lng}`;
+    $("#site-map").innerHTML = `<iframe title="Map of the daycare's location" src="${esc(src)}" loading="lazy"></iframe>
+      <p class="hint">The pin should be on the daycare's building. Staff count as at the daycare within ${esc(form.site_radius_m.value)} m of it.</p>`;
+  };
+
+  // "43.6532, -79.3832" (as Google Maps copies it) fills both boxes
+  const splitPair = (text) => {
+    const pair = text.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+    if (!pair) return false;
+    form.site_lat.value = pair[1];
+    form.site_lng.value = pair[2];
+    drawMap();
+    return true;
+  };
+  [form.site_lat, form.site_lng].forEach((input) =>
+    input.addEventListener("paste", (e) => {
+      if (splitPair(e.clipboardData?.getData("text") || "")) e.preventDefault();
+    })
+  );
+  form.addEventListener("change", (e) => {
+    if (e.target === form.site_lat || e.target === form.site_lng) splitPair(e.target.value);
+    drawMap();
+  });
+
+  $("[data-here]").addEventListener("click", async (e) => {
+    const button = e.currentTarget;
+    const hint = $("#here-hint");
+    button.disabled = true;
+    hint.textContent = "Finding your location…";
+    try {
+      const pos = await browserPosition({ maximumAge: 0 });
+      form.site_lat.value = pos.lat.toFixed(6);
+      form.site_lng.value = pos.lng.toFixed(6);
+      hint.textContent = pos.accuracy > 100
+        ? `Found, but only accurate to about ${fmtDistance(pos.accuracy)}. Check the pin on the map, or try again on a phone with location turned on.`
+        : `Found your location (accurate to about ${fmtDistance(pos.accuracy)}). Check the pin on the map, then save.`;
+      drawMap();
+    } catch (err) {
+      hint.textContent = err.message;
+    }
+    button.disabled = false;
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const { lat, lng, valid } = read();
+    const requireOnSite = form.require_on_site.checked;
+    error.classList.remove("is-shown");
+    const fail = (message) => {
+      error.textContent = message;
+      error.classList.add("is-shown");
+    };
+    if ((lat !== null || lng !== null) && !valid) return fail("Please check the latitude and longitude. Latitude is between -90 and 90, longitude between -180 and 180.");
+    if (requireOnSite && !valid) return fail("Set the daycare's location first. Until it's set, staff can't sign in or out.");
+    const submit = $('[type="submit"]', form);
+    submit.disabled = true;
+    try {
+      await api.saveSettings({ require_on_site: requireOnSite, site_lat: lat, site_lng: lng, site_radius_m: Number(form.site_radius_m.value) });
+      toast(requireOnSite ? "Saved. Staff can now sign in and out only at the daycare." : "Saved. Staff can sign in and out from anywhere.");
+    } catch (err) {
+      fail(err.message);
+    }
+    submit.disabled = false;
+  });
+  drawMap();
+}
+
 startPortal({
   portalName: "Admin portal",
   demoRole: "admin",
@@ -716,6 +841,7 @@ startPortal({
     hours: { label: "Staff hours", icon: "clock", render: renderHours },
     payments: { label: "Payments", icon: "wallet", render: renderPayments },
     incidents: { label: "Incidents", icon: "alert", render: renderIncidents },
+    settings: { label: "Settings", icon: "settings", render: renderSettings },
   },
   async onStart(ctx) {
     try {

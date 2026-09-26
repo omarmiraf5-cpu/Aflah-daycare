@@ -394,7 +394,9 @@ function renderShell(root, api, session, config) {
       <header class="mobile-top"><img src="${LOGO}" alt="" width="36" height="36"><div>${wordmark}<small>${esc(config.portalName)}</small></div>
         <button class="icon-btn" type="button" data-signout aria-label="Sign out">${icon("logout")}</button></header>
       <main class="main" id="main">
-        ${isDemo ? `<div class="demo-banner">${icon("info")}<span><strong>Demo mode:</strong> sample data, saved only on this device.</span><button class="btn btn--ghost btn--sm" type="button" data-reset-demo>Reset sample data</button></div>` : ""}
+        ${isDemo ? `<div class="demo-banner">${icon("info")}<span><strong>Demo mode:</strong> sample data, saved only on this device.</span>
+          ${config.demoLocation && profile.role !== "admin" ? `<label class="demo-where">Pretend you're <select data-demo-where aria-label="Pretend location">${options([["here", "at the daycare"], ["away", "away from the daycare"]], api.demoWhere)}</select></label>` : ""}
+          <button class="btn btn--ghost btn--sm" type="button" data-reset-demo>Reset sample data</button></div>` : ""}
         <div class="topbar"><div><h1 id="view-title"></h1><p id="view-subtitle"></p></div><div class="topbar__actions" id="view-actions"></div></div>
         <div id="view"></div>
       </main>
@@ -413,6 +415,10 @@ function renderShell(root, api, session, config) {
       startPortal(config);
     })
   );
+  $("[data-demo-where]", root)?.addEventListener("change", (e) => {
+    api.setDemoWhere(e.target.value);
+    route();
+  });
   $("[data-reset-demo]", root)?.addEventListener("click", async () => {
     if (!(await confirmDialog({ title: "Reset sample data?", message: "This puts the demo back to its original sample children, staff and records.", confirmLabel: "Reset" }))) return;
     await api.resetDemo();
@@ -445,6 +451,8 @@ function renderShell(root, api, session, config) {
 
   let current = 0;
   async function route() {
+    // Signed out since: this frame is gone
+    if (!ctx.view.isConnected) return window.removeEventListener("hashchange", route);
     const id = views[location.hash.slice(1)] ? location.hash.slice(1) : config.defaultView;
     $$("[data-view]").forEach((a) => {
       a.classList.toggle("is-active", a.dataset.view === id);

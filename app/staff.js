@@ -2,7 +2,7 @@
 // incident reports.
 import { dayStr } from "./data.js";
 import { $, icon, toast, confirmDialog, emptyState, fmtClock, fmtDay, fmtDuration, fmtHours, hoursBetween, mondayOf, startPortal } from "./ui.js";
-import { renderAttendance, renderTimesheets, incidentCard, incidentForm, bindIncidentCards } from "./shared.js";
+import { renderAttendance, renderTimesheets, incidentCard, incidentForm, bindIncidentCards, siteStatus } from "./shared.js";
 
 async function renderShift(ctx) {
   const { api, profile } = ctx;
@@ -24,6 +24,7 @@ async function renderShift(ctx) {
           <span class="clock__status">${open ? `On shift since ${fmtClock(open.clock_in)}` : "Not signed in"}</span>
           <span class="clock__now" id="clock-now">${fmtClock(new Date().toISOString())}</span>
           <span class="clock__detail" id="clock-detail"></span>
+          <div class="clock__site" id="site-status" hidden></div>
           ${open
             ? `<button class="btn btn--red" type="button" data-clock-out>${icon("logout")}Sign out of my shift</button>`
             : `<button class="btn btn--green" type="button" data-clock-in>${icon("login")}Sign in to my shift</button>`}
@@ -48,26 +49,29 @@ async function renderShift(ctx) {
   };
   const timer = setInterval(tick, 20000);
   tick();
+  siteStatus(ctx, $("#site-status"));
 
   $("[data-clock-in]")?.addEventListener("click", async (e) => {
-    e.currentTarget.disabled = true;
+    const button = e.currentTarget;
+    button.disabled = true;
     try {
       await api.clockIn();
       toast(`Signed in at ${fmtClock(new Date().toISOString())}. Have a great day!`);
+      ctx.refresh();
     } catch (err) {
       toast(err.message, "error");
+      button.disabled = false;
     }
-    ctx.refresh();
   });
   $("[data-clock-out]")?.addEventListener("click", async () => {
     if (!(await confirmDialog({ title: "Sign out of your shift?", message: `You'll be signed out at ${fmtClock(new Date().toISOString())}.`, confirmLabel: "Sign out" }))) return;
     try {
       await api.clockOut(open.id);
       toast("Signed out. See you next time!");
+      ctx.refresh();
     } catch (err) {
       toast(err.message, "error");
     }
-    ctx.refresh();
   });
 }
 
@@ -88,6 +92,7 @@ async function renderIncidents(ctx) {
 startPortal({
   portalName: "Staff portal",
   demoRole: "staff",
+  demoLocation: true,
   defaultView: "shift",
   allow: (profile) => ["staff", "admin"].includes(profile.role),
   otherPortal: `Director? <a href="../admin/">Go to the admin portal</a>`,

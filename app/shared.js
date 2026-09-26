@@ -1,6 +1,6 @@
 // Screens used by both portals: the daily sign-in roster, the printable
-// children's timesheet, and incident reports.
-import { dayStr, ROOMS } from "./data.js";
+// children's timesheet, incident reports, and the "at the daycare" check.
+import { dayStr, ROOMS, isDemo, locationPermission, SITE_NOT_SET, LOCATION_BLOCKED } from "./data.js";
 import {
   $, $$, esc, icon, toast, openDialog, confirmDialog, field, options, emptyState, printSheets,
   fmtClock, fmtDay, fmtLongDay, fmtSheetDate, fmtHours, fmtDateTime, parseDay, addDays, mondayOf,
@@ -23,6 +23,41 @@ const PRESENCE = {
 };
 
 export const roomOf = (child) => child.room || ROOMS[child.program] || child.program;
+
+// ---------------------------------------------------------------------------
+// "At the daycare" status for staff (sign in and out only work on site)
+// ---------------------------------------------------------------------------
+
+export async function siteStatus(ctx, holder) {
+  const { api, profile } = ctx;
+  if (!holder || profile.role === "admin") return;
+  const draw = (status) => {
+    if (!holder.isConnected) return stop();
+    const retry = (label) => `<button class="btn btn--ghost btn--sm" type="button" data-site-check>${label}</button>`;
+    const views = {
+      checking: ["geo--checking", "Checking you're at the daycare…", ""],
+      here: ["geo--here", "At the daycare. You can sign in and out.", ""],
+      away: ["geo--away", status.message, retry("Check again")],
+      error: ["geo--warn", status.message, retry("Try again")],
+      unset: ["geo--warn", SITE_NOT_SET, ""],
+      idle: ["", "Sign in and sign out only work at the daycare. Your location is checked when you tap Sign in or Sign out.", retry("Check now")],
+    };
+    const view = views[status.state];
+    holder.hidden = !view;
+    if (view) holder.innerHTML = `<div class="geo ${view[0]}" role="status">${icon("pin")}<span>${esc(view[1])}</span>${view[2]}</div>`;
+  };
+  const stop = api.onSiteStatus(draw);
+  holder.addEventListener("click", (e) => e.target.closest("[data-site-check]") && api.checkSite());
+
+  const settings = await api.getSettings().catch(() => null);
+  if (!settings || settings.require_on_site === false) return draw({ state: "off" });
+  if (settings.site_lat == null || settings.site_lng == null) return draw({ state: "unset" });
+  // Check straight away when it won't pop up a permission question
+  const permission = isDemo ? "granted" : await locationPermission();
+  if (permission === "granted") api.checkSite({ reuse: true }).then(draw);
+  else if (permission === "denied") draw({ state: "error", message: LOCATION_BLOCKED });
+  else draw({ state: "idle" });
+}
 
 // ---------------------------------------------------------------------------
 // Children's sign in / sign out for one day
@@ -53,6 +88,7 @@ export async function renderAttendance(ctx) {
 
   const rooms = [...new Set(enrolled.map(roomOf))].sort();
   ctx.view.innerHTML = `
+    <div id="site-status" hidden></div>
     <div class="summary" id="att-summary"></div>
     <div class="card card--flush">
       <div class="card__head">
@@ -114,6 +150,7 @@ export async function renderAttendance(ctx) {
       if (message) toast(message);
     } catch (err) {
       toast(err.message, "error");
+      draw();
     }
   };
 
@@ -175,6 +212,7 @@ export async function renderAttendance(ctx) {
   $$("[data-shift-day]").forEach((b) => b.addEventListener("click", () => setDay(dayStr(addDays(parseDay(day), Number(b.dataset.shiftDay))))));
   $("[data-today]")?.addEventListener("click", () => setDay(today));
   draw();
+  siteStatus(ctx, $("#site-status"));
 }
 
 // ---------------------------------------------------------------------------

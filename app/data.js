@@ -22,6 +22,111 @@ export function dayStr(date = new Date()) {
 const nowIso = () => new Date().toISOString();
 
 // ---------------------------------------------------------------------------
+// Sign in only at the daycare
+// ---------------------------------------------------------------------------
+
+export const SITE_NOT_SET = "The daycare's location hasn't been set yet, so sign in and sign out are turned off. Ask the director to set it in the admin portal under Settings.";
+export const LOCATION_BLOCKED = "Location is blocked for this site. Allow location access in your browser or phone settings, then try again. It's needed to check you're at the daycare.";
+const LOCATION_ERRORS = {
+  1: LOCATION_BLOCKED,
+  2: "Your location isn't available right now. Turn on location services (and Wi-Fi, which helps indoors) and try again.",
+  3: "Finding your location took too long. Please try again.",
+};
+// How long a successful check is reused before checking again (the database
+// accepts it for 5 minutes)
+const SITE_CHECK_REUSE_MS = 4 * 60 * 1000;
+
+// Distance in metres between two { lat, lng } points
+export function distanceM(a, b) {
+  const rad = (deg) => (deg * Math.PI) / 180;
+  const h = Math.sin(rad(b.lat - a.lat) / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2;
+  return 2 * 6371008.8 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+export const fmtDistance = (m) => (m < 1000 ? `${Math.max(10, Math.round(m / 10) * 10)} m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} km`);
+
+// This device's location from the browser (asks for permission the first time)
+export function browserPosition({ maximumAge = 30000 } = {}) {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("This browser can't share its location, so it can't be used to sign in or out. Use a phone or tablet with location turned on."));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }),
+      (err) => reject(new Error(LOCATION_ERRORS[err.code] || "Couldn't get your location. Please try again.")),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge }
+    );
+  });
+}
+
+// "granted", "denied", "prompt", or "unknown"
+export async function locationPermission() {
+  try {
+    return (await navigator.permissions.query({ name: "geolocation" })).state;
+  } catch {
+    return "unknown";
+  }
+}
+
+// Checks the device is at the daycare before staff sign in or out, and keeps a
+// recent success so a run of sign-ins doesn't wait for GPS every time.
+// The database makes the final decision; this just gets it the location.
+function siteGuard({ role, getSettings, locate, verify }) {
+  let last = null;
+  const listeners = new Set();
+  const emit = (status) => listeners.forEach((fn) => fn(status));
+  const allowed = (status) => ["exempt", "off", "here"].includes(status.state);
+
+  async function check({ reuse = false } = {}) {
+    if (role() === "admin") return { state: "exempt" };
+    if (reuse && last && allowed(last.status) && Date.now() - last.at < SITE_CHECK_REUSE_MS) return last.status;
+    let status;
+    try {
+      const settings = await getSettings();
+      if (settings.require_on_site === false) status = { state: "off" };
+      else if (settings.site_lat == null || settings.site_lng == null) status = { state: "unset", message: SITE_NOT_SET };
+      else {
+        emit({ state: "checking" });
+        const result = await verify(await locate());
+        if (result.required === false) status = { state: "off" };
+        else if (result.on_site) status = { state: "here", distance: result.distance_m };
+        else status = { state: "away", distance: result.distance_m, message: `You're about ${fmtDistance(result.distance_m)} from the daycare. Sign in and sign out only work at the daycare.` };
+      }
+    } catch (err) {
+      status = { state: "error", message: err.message };
+    }
+    last = { at: Date.now(), status };
+    emit(status);
+    return status;
+  }
+
+  return {
+    check,
+    reset() {
+      last = null;
+    },
+    subscribe(fn) {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    },
+    // Runs a sign in / sign out write once the device is confirmed on site
+    async run(write) {
+      let status = await check({ reuse: true });
+      if (!allowed(status)) throw new Error(status.message);
+      try {
+        return await write();
+      } catch (err) {
+        if (!err.offSite) throw err;
+        status = await check();
+        if (!allowed(status)) throw new Error(status.message);
+        return write();
+      }
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Supabase
 // ---------------------------------------------------------------------------
 
@@ -31,6 +136,9 @@ const FRIENDLY = [
   [/user already registered/i, "An account with this email already exists. Try signing in instead."],
   [/one_open_shift_per_staff/i, "You're already signed in to a shift."],
   [/attendance_child_id_day_key|duplicate key.*attendance/i, "This child is already checked in for that day."],
+  [/not_on_site/, "Sign in and sign out only work at the daycare."],
+  [/site_not_set/, SITE_NOT_SET],
+  [/location_required/, "We couldn't read your location. Turn on location and try again."],
   [/row-level security|permission denied/i, "You don't have permission to do that."],
   [/password should be at least/i, "Please choose a password with at least 6 characters."],
   [/failed to fetch|network/i, "Can't reach the server. Check your internet connection and try again."],
@@ -42,6 +150,12 @@ function friendly(error) {
   return match ? match[1] : message;
 }
 
+function toError(error) {
+  const err = new Error(friendly(error));
+  err.offSite = /not_on_site/.test(error?.message || "");
+  return err;
+}
+
 async function createSupabaseApi() {
   const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm");
   // Arriving from a "reset your password" email
@@ -50,9 +164,10 @@ async function createSupabaseApi() {
     auth: { persistSession: true, autoRefreshToken: true },
   });
   let userId = null;
+  let userRole = null;
 
   const must = ({ data, error }) => {
-    if (error) throw new Error(friendly(error));
+    if (error) throw toError(error);
     return data;
   };
   const save = async (table, row, fields) => {
@@ -68,6 +183,14 @@ async function createSupabaseApi() {
 
   sb.auth.onAuthStateChange((event) => {
     if (event === "PASSWORD_RECOVERY") recovery = true;
+  });
+
+  const getSettings = async () => must(await sb.from("settings").select("*").eq("id", 1).maybeSingle()) || { require_on_site: true };
+  const site = siteGuard({
+    role: () => userRole,
+    getSettings,
+    locate: () => browserPosition(),
+    verify: async ({ lat, lng, accuracy }) => must(await sb.rpc("verify_location", { lat, lng, accuracy })),
   });
 
   return {
@@ -90,6 +213,7 @@ async function createSupabaseApi() {
       if (!user) return null;
       userId = user.id;
       const profile = must(await sb.from("profiles").select("*").eq("id", user.id).maybeSingle());
+      userRole = profile?.active ? profile.role : null;
       return { user: { id: user.id, email: user.email }, profile: profile || { id: user.id, email: user.email, full_name: "", role: "pending", active: true } };
     },
     async signIn(email, password) {
@@ -102,7 +226,14 @@ async function createSupabaseApi() {
     async signOut() {
       await sb.auth.signOut();
       userId = null;
+      userRole = null;
+      site.reset();
     },
+
+    getSettings,
+    saveSettings: async (values) => must(await sb.from("settings").update(values).eq("id", 1).select().single()),
+    checkSite: (options) => site.check(options),
+    onSiteStatus: (fn) => site.subscribe(fn),
 
     listChildren: async () => must(await sb.from("children").select("*").order("first_name")),
     saveChild: (child) => save("children", child, CHILD_FIELDS),
@@ -114,16 +245,16 @@ async function createSupabaseApi() {
     listAttendance: async (day) => must(await sb.from("attendance").select("*").eq("day", day)),
     listAttendanceBetween: async (from, to) => must(await sb.from("attendance").select("*").gte("day", from).lte("day", to)),
     // Set one of sign_in_1, sign_out_1, sign_in_2, sign_out_2 (or clear it with null)
-    setAttendanceTime: async (childId, day, field, value) =>
-      must(await sb.from("attendance").upsert({ child_id: childId, day, [field]: value, ...(value ? { absent: false } : {}) }, { onConflict: "child_id,day" }).select().single()),
-    setAbsent: async (childId, day, absent) =>
-      must(await sb.from("attendance").upsert({ child_id: childId, day, absent, ...(absent ? { sign_in_1: null, sign_out_1: null, sign_in_2: null, sign_out_2: null } : {}) }, { onConflict: "child_id,day" }).select().single()),
+    setAttendanceTime: (childId, day, field, value) =>
+      site.run(async () => must(await sb.from("attendance").upsert({ child_id: childId, day, [field]: value, ...(value ? { absent: false } : {}) }, { onConflict: "child_id,day" }).select().single())),
+    setAbsent: (childId, day, absent) =>
+      site.run(async () => must(await sb.from("attendance").upsert({ child_id: childId, day, absent, ...(absent ? { sign_in_1: null, sign_out_1: null, sign_in_2: null, sign_out_2: null } : {}) }, { onConflict: "child_id,day" }).select().single())),
 
     async getOpenShift() {
       return must(await sb.from("shifts").select("*").eq("staff_id", userId).is("clock_out", null).maybeSingle());
     },
-    clockIn: async () => must(await sb.from("shifts").insert({}).select().single()),
-    clockOut: async (shiftId) => must(await sb.from("shifts").update({ clock_out: nowIso() }).eq("id", shiftId).select().single()),
+    clockIn: () => site.run(async () => must(await sb.from("shifts").insert({}).select().single())),
+    clockOut: (shiftId) => site.run(async () => must(await sb.from("shifts").update({ clock_out: nowIso() }).eq("id", shiftId).select().single())),
     async listShifts({ staffId, from, to } = {}) {
       let query = sb.from("shifts").select("*").order("clock_in", { ascending: false });
       if (staffId) query = query.eq("staff_id", staffId);
@@ -157,6 +288,9 @@ async function createSupabaseApi() {
 
 const DEMO_KEY = "aflah-portal-demo-v1";
 const DEMO_SESSION_KEY = "aflah-portal-demo-user";
+const DEMO_WHERE_KEY = "aflah-portal-demo-where";
+// A sample location for the demo daycare
+const DEMO_SITE = { lat: 43.6532, lng: -79.3832 };
 export const DEMO_USERS = { admin: "demo-admin", staff: "demo-staff-1" };
 
 function createDemoApi() {
@@ -179,6 +313,8 @@ function createDemoApi() {
     db = seedDemo();
     storage.set(DEMO_KEY, JSON.stringify(db));
   }
+  db.settings ||= demoSettings();
+  db.sitePasses ||= {};
   const persist = () => storage.set(DEMO_KEY, JSON.stringify(db));
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`);
   const me = () => db.profiles.find((p) => p.id === storage.get(DEMO_SESSION_KEY) && p.active);
@@ -209,8 +345,49 @@ function createDemoApi() {
   };
   const blankToNull = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) => [k, v === "" ? null : v]));
 
+  // Same rules as the database: staff need a recent on-site check
+  const needOnSite = () => {
+    const s = db.settings;
+    if (isAdmin() || !s.require_on_site || (db.sitePasses[me().id] || 0) > Date.now()) return;
+    const err = new Error(s.site_lat == null ? SITE_NOT_SET : "Sign in and sign out only work at the daycare.");
+    err.offSite = s.site_lat != null;
+    throw err;
+  };
+  const demoWhere = () => (storage.get(DEMO_WHERE_KEY) === "away" ? "away" : "here");
+  const site = siteGuard({
+    role: () => me()?.role,
+    getSettings: async () => clone(db.settings),
+    // In the demo the location is pretend: at the daycare, or about 3 km away
+    async locate() {
+      await pause();
+      const at = { lat: db.settings.site_lat ?? DEMO_SITE.lat, lng: db.settings.site_lng ?? DEMO_SITE.lng };
+      return demoWhere() === "away" ? { lat: at.lat + 0.027, lng: at.lng + 0.012, accuracy: 20 } : { lat: at.lat + 0.0002, lng: at.lng - 0.0002, accuracy: 18 };
+    },
+    async verify({ lat, lng, accuracy }) {
+      need(isStaff());
+      const s = db.settings;
+      if (!s.require_on_site) return { required: false, on_site: true };
+      if (s.site_lat == null) throw new Error(SITE_NOT_SET);
+      const d = distanceM({ lat, lng }, { lat: s.site_lat, lng: s.site_lng });
+      const here = d - Math.min(Math.max(accuracy || 0, 0), 100) <= s.site_radius_m;
+      if (here) db.sitePasses[me().id] = Date.now() + 5 * 60000;
+      else delete db.sitePasses[me().id];
+      persist();
+      return { required: true, on_site: here, distance_m: Math.round(d), radius_m: s.site_radius_m };
+    },
+  });
+
   return {
     demo: true,
+    get demoWhere() {
+      return demoWhere();
+    },
+    setDemoWhere(where) {
+      storage.set(DEMO_WHERE_KEY, where);
+      db.sitePasses = {};
+      persist();
+      site.reset();
+    },
     isRecovery: false,
     async resetPassword() {
       throw new Error("Demo mode: password resets work once the portal is connected to the database.");
@@ -231,11 +408,28 @@ function createDemoApi() {
     },
     async signOut() {
       storage.remove(DEMO_SESSION_KEY);
+      site.reset();
     },
     async resetDemo() {
       db = seedDemo();
+      db.settings = demoSettings();
+      db.sitePasses = {};
       persist();
+      site.reset();
     },
+
+    async getSettings() {
+      need(isStaff());
+      return clone(db.settings);
+    },
+    async saveSettings(values) {
+      need(isAdmin());
+      db.settings = { ...db.settings, ...values, id: 1, updated_at: nowIso() };
+      persist();
+      return clone(db.settings);
+    },
+    checkSite: (options) => site.check(options),
+    onSiteStatus: (fn) => site.subscribe(fn),
 
     async listChildren() {
       await pause();
@@ -277,32 +471,36 @@ function createDemoApi() {
       need(isStaff());
       return clone(db.attendance.filter((r) => r.day >= from && r.day <= to));
     },
-    async setAttendanceTime(childId, day, field, value) {
+    setAttendanceTime: (childId, day, field, value) => site.run(async () => {
       need(isStaff());
+      needOnSite();
       const row = db.attendance.find((r) => r.child_id === childId && r.day === day);
       const changes = { [field]: value, updated_by: me().id, updated_at: nowIso(), ...(value ? { absent: false } : {}) };
       return row ? upsert("attendance", { id: row.id, ...changes }) : upsert("attendance", { ...blankAttendance(childId, day, me().id), ...changes });
-    },
-    async setAbsent(childId, day, absent) {
+    }),
+    setAbsent: (childId, day, absent) => site.run(async () => {
       need(isStaff());
+      needOnSite();
       const row = db.attendance.find((r) => r.child_id === childId && r.day === day);
       const changes = { absent, updated_by: me().id, updated_at: nowIso(), ...(absent ? { sign_in_1: null, sign_out_1: null, sign_in_2: null, sign_out_2: null } : {}) };
       return row ? upsert("attendance", { id: row.id, ...changes }) : upsert("attendance", { ...blankAttendance(childId, day, me().id), ...changes });
-    },
+    }),
 
     async getOpenShift() {
       need(isStaff());
       return clone(db.shifts.find((s) => s.staff_id === me().id && !s.clock_out) || null);
     },
-    async clockIn() {
+    clockIn: () => site.run(async () => {
       need(isStaff());
+      needOnSite();
       if (db.shifts.some((s) => s.staff_id === me().id && !s.clock_out)) throw new Error("You're already signed in to a shift.");
       return upsert("shifts", { staff_id: me().id, clock_in: nowIso(), clock_out: null, note: null });
-    },
-    async clockOut(shiftId) {
+    }),
+    clockOut: (shiftId) => site.run(async () => {
       need(isStaff());
+      needOnSite();
       return upsert("shifts", { id: shiftId, clock_out: nowIso() });
-    },
+    }),
     async listShifts({ staffId, from, to } = {}) {
       await pause();
       need(isStaff());
@@ -379,6 +577,10 @@ function createDemoApi() {
       drop("payments", id);
     },
   };
+}
+
+function demoSettings() {
+  return { id: 1, site_lat: DEMO_SITE.lat, site_lng: DEMO_SITE.lng, site_radius_m: 150, require_on_site: true, updated_at: nowIso() };
 }
 
 function blankAttendance(childId, day, by) {

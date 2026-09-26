@@ -84,6 +84,7 @@ Two private portals sit alongside the website. Both work on phones, tablets and 
 - **Staff hours:** each educator's weekly hours, and corrections to shift times.
 - **Payments:** each family's charges, payments and outstanding balance. Record payments (e-transfer, cash, cheque, card or subsidy), add one-off charges, bill a month's tuition to every enrolled child in one step (children already billed for that month are skipped) and open a printable statement for a family.
 - **Incident reports:** read every report, add review notes and mark it reviewed.
+- **Settings:** set the daycare's location, and choose whether staff can sign in and out only there (see [Sign in only at the daycare](#sign-in-only-at-the-daycare)).
 
 **Staff portal: `/staff/`** (for educators)
 
@@ -92,9 +93,28 @@ Two private portals sit alongside the website. Both work on phones, tablets and 
 - **Timesheets:** each child's sheet laid out like the paper *Children Timesheet*: child's full name, room and date of birth, Monday to Friday for four weeks, *Absent* days, hours per day, total hours and a line for the parent's signature. Print it, or save it as a PDF.
 - **Incident reports:** write a report (child, when, where, what happened, first aid or action taken, witnesses, whether and when a parent was told). Staff see their own reports; once the director reviews one it becomes read-only.
 
+### Sign in only at the daycare
+
+Staff can sign in and out of their shifts, and sign children in and out, only while their phone or tablet is at the daycare:
+
+- When a staff member taps *Sign in* or *Sign out*, the portal asks the device for its location. The first time, the browser asks them to allow location access for the site.
+- The database checks that the location is within the distance you chose (150 m by default) of the daycare's location, allowing for GPS accuracy. If it's too far, nothing is saved and they see how far away they are, for example "You're about 3.2 km from the daycare".
+- A successful check lasts 5 minutes, so signing in a line of children at drop-off doesn't wait for GPS each time.
+- This covers everything staff change on the children's timesheet (sign in, sign out, time corrections and *Absent*) and their own shift sign in and sign out. Incident reports can be written anywhere.
+- Directors (admins) can sign in, sign out and correct times from anywhere. If someone forgets to sign out before leaving, a director corrects it under *Staff hours*.
+- The portal doesn't keep a record of where anyone was. It only checks the distance at the moment of signing in or out.
+
+Set it up in the admin portal under **Settings**: stand inside the daycare and tap *Use my current location* (or paste the location from Google Maps), check the pin on the map, and save. Until the location is set, staff can't sign in or out, and the dashboard reminds you. If staff inside the building are told they're too far away, choose a larger distance. You can also turn the rule off there.
+
+Phones and tablets work best. A desktop computer without Wi-Fi often can't tell where it is precisely enough to pass the check.
+
+It relies on the location the phone reports, so it stops ordinary sign-ins from home or the car, but someone determined could fake their location with special apps. For a stricter check, the portals could also be limited to the daycare's Wi-Fi.
+
 ### Demo mode
 
 Until the portals are connected to a database they run in **demo mode**: sample children, staff, payments and reports that are saved only in that browser. Use the *Explore* button on the sign-in screen to try each portal, and *Reset sample data* to start over. Nothing entered in demo mode is shared with anyone else, so don't use it for real records.
+
+In the demo, the staff portal has a *Pretend you're* switch in the yellow banner, so you can see what happens at the daycare and away from it without going anywhere.
 
 ### Going live with Supabase
 
@@ -120,8 +140,9 @@ The portals store their data in [Supabase](https://supabase.com), a hosted Postg
    update public.profiles set role = 'admin' where email = 'you@example.com';
    ```
    with your own email, then sign in again.
-7. **Add your staff.** Each educator opens `/staff/` and creates an account. They appear on your dashboard under *Needs your attention*; approve them as **Staff** (or **Admin** for another director). Nobody can see any records until an admin approves them.
-8. **Add your children** under *Children*, then set up tuition under *Payments*.
+7. **Set the daycare's location.** At the daycare, open *Settings* in the admin portal, tap *Use my current location*, check the pin on the map and save. Staff can't sign in or out until this is done.
+8. **Add your staff.** Each educator opens `/staff/` and creates an account. They appear on your dashboard under *Needs your attention*; approve them as **Staff** (or **Admin** for another director). Nobody can see any records until an admin approves them.
+9. **Add your children** under *Children*, then set up tuition under *Payments*.
 
 Supabase's built-in email sender only allows a few emails an hour. Before inviting all your staff, set up your own email sender under **Authentication → Emails → SMTP Settings** (for example with Resend, Postmark or your email provider).
 
@@ -130,12 +151,13 @@ Supabase's built-in email sender only allows a few emails an hour. Before inviti
 | | Admin | Staff | Waiting for approval |
 | --- | --- | --- | --- |
 | Children's names, rooms and health notes | View and edit | View | No access |
-| Children's sign in / sign out and timesheets | View and edit | View and edit | No access |
-| Own shift sign in / sign out | Yes | Yes | No access |
+| Children's sign in / sign out and timesheets | View and edit from anywhere | View; edit at the daycare | No access |
+| Own shift sign in / sign out | Yes, from anywhere | Yes, at the daycare | No access |
 | Everyone's shift hours | View and edit | Own only | No access |
 | Incident reports | All; review them | Write; see own | No access |
 | Payments, charges and balances | View and edit | No access | No access |
 | Approve staff, change roles | Yes | No | No |
+| Daycare location and the sign-in rule | Yes | No | No |
 
 These rules are enforced by the database itself (Postgres row-level security in `supabase/schema.sql`), not only by the screens, so they hold even if someone edits the page code in their browser. Deactivating a person under *Staff* removes their access straight away.
 
