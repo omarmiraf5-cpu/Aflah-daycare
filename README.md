@@ -76,6 +76,6 @@ After that, every push to the repository's default branch redeploys the live sit
 
 ## Photos and artwork
 
-The photos on the site (`assets/images/shelf.jpg`, `plant.jpg`, `window.jpg`, `toys.jpg`, `books.jpg` and `lamps.jpg`) are crops of the logo artwork and are placeholders only. Replace them with real photos of the centre, keeping the same file names, and every page picks them up.
+The photos on the site (`assets/images/shelf.jpg`, `letters.jpg`, `window.jpg`, `toys.jpg`, `books.jpg` and `lamps.jpg`) are crops of the logo artwork and are placeholders only. Replace them with real photos of the centre, keeping the same file names, and every page picks them up.
 
-The Arabic writing has been removed from the logo and the classroom artwork: the text around the top of the logo ring and the alphabet charts on the wall. The original versions are in the git history.
+The Arabic writing around the top of the logo ring has been removed, and the site text uses no Arabic script. The Arabic alphabet posters on the classroom wall are kept on purpose. The original logo artwork is in the git history.
