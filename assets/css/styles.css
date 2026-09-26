@@ -22,6 +22,7 @@
   --radius: 26px;
   --shadow: 0 18px 40px -18px rgba(31, 42, 68, 0.35);
   --font: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Fredoka", "Poppins", system-ui, sans-serif;
   --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
 }
 
@@ -449,11 +450,67 @@ ol {
 }
 
 .hero h1 {
-  max-width: 13ch;
-  font-size: clamp(2.5rem, 5.2vw, 3.8rem);
-  line-height: 1.1;
+  max-width: 12ch;
+  font-family: var(--display);
+  font-size: clamp(2.7rem, 5.6vw, 4.2rem);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: 0.005em;
   color: #fff;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 3px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* "Fun" in the logo's rainbow colours; each letter bounces in */
+.rainbow {
+  white-space: nowrap;
+}
+
+.rainbow span {
+  display: inline-block;
+  transform-origin: 50% 100%;
+}
+
+.rainbow span:nth-child(1) { color: #ff5a6e; }
+.rainbow span:nth-child(2) { color: #ffb23f; }
+.rainbow span:nth-child(3) { color: #9bd84a; }
+
+.js .is-in .rainbow span {
+  animation: letter-bounce 0.9s cubic-bezier(0.28, 0.84, 0.42, 1) both;
+}
+
+.js .is-in .rainbow span:nth-child(2) { animation-delay: 0.1s; }
+.js .is-in .rainbow span:nth-child(3) { animation-delay: 0.2s; }
+
+.rainbow:hover span {
+  animation: icon-boing 0.8s cubic-bezier(0.28, 0.84, 0.42, 1) both;
+}
+
+.rainbow:hover span:nth-child(2) { animation-delay: 0.08s; }
+.rainbow:hover span:nth-child(3) { animation-delay: 0.16s; }
+
+@keyframes letter-bounce {
+  0% { opacity: 0; transform: translateY(-40px) scale(0.8, 1.2); }
+  45% { opacity: 1; transform: translateY(0) scale(1.15, 0.85); }
+  65% { transform: translateY(-10px) scale(0.95, 1.05); }
+  82% { transform: translateY(0) scale(1.04, 0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1, 1); }
+}
+
+/* "Hand in Hand" in yellow with a hand-drawn underline */
+.hero__accent {
+  position: relative;
+  color: var(--yellow);
+  white-space: nowrap;
+}
+
+.hero__accent::after {
+  content: "";
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  bottom: -0.16em;
+  height: 0.26em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 16' preserveAspectRatio='none'%3E%3Cpath d='M3 11C38 4 66 3 100 8s64 6 97-3' fill='none' stroke='%23ffcc29' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
 }
 
 .hero__text {
@@ -580,8 +637,10 @@ ol {
 }
 
 .page-hero h1 {
-  font-size: clamp(2.3rem, 5vw, 3.5rem);
-  line-height: 1.1;
+  font-family: var(--display);
+  font-size: clamp(2.5rem, 5.4vw, 3.8rem);
+  font-weight: 600;
+  line-height: 1.06;
   color: #fff;
 }
 
