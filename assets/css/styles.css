@@ -401,6 +401,7 @@ ol {
   min-height: min(86vh, 720px);
   padding: 5rem 0 10rem;
   overflow: hidden;
+  background: #0f1423;
   color: #fff;
 }
 
@@ -413,10 +414,20 @@ ol {
   object-fit: cover;
 }
 
+/* The photo sits to the right and is sized from the hero's height so the whole logo,
+   down to its "An inclusive and supportive…" ribbon (86% of the image height),
+   stays above the cards that overlap the bottom 7rem of the hero. */
 .hero__bg {
-  object-position: 0 50%;
-  transform: scale(1.25);
-  transform-origin: 0 50%;
+  inset: 0 auto auto 65%;
+  width: auto;
+  max-width: none;
+  height: calc((100% - 8rem) / 0.86);
+  object-fit: fill;
+  translate: -50% 0;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22%, #000 90%, transparent 100%), linear-gradient(to bottom, #000 90%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent 0, #000 22%, #000 90%, transparent 100%), linear-gradient(to bottom, #000 90%, transparent 100%);
+  mask-composite: intersect;
 }
 
 .hero::after,
@@ -425,6 +436,10 @@ ol {
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, rgba(15, 20, 35, 0.8) 0%, rgba(15, 20, 35, 0.55) 45%, rgba(15, 20, 35, 0.12) 100%);
+}
+
+.hero::after {
+  background: linear-gradient(90deg, rgba(15, 20, 35, 0.78) 0%, rgba(15, 20, 35, 0.55) 34%, rgba(15, 20, 35, 0.1) 56%, rgba(15, 20, 35, 0) 100%);
 }
 
 .hero__content,
@@ -438,12 +453,14 @@ ol {
   font-size: clamp(2.5rem, 5.2vw, 3.8rem);
   line-height: 1.1;
   color: #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
 }
 
 .hero__text {
-  max-width: 34rem;
+  max-width: 31rem;
   font-size: 1.1rem;
   color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45);
 }
 
 .hero .btn-row {
@@ -1671,12 +1688,34 @@ ol {
     display: flex;
   }
 
-  .hero__bg {
-    object-position: 50% 50%;
-    transform: none;
+  .hero {
+    display: block;
+    min-height: 0;
+    padding: 0 0 10rem;
   }
 
-  .hero::after,
+  .hero__bg {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    object-position: 50% 45%;
+    translate: none;
+    -webkit-mask-image: linear-gradient(to bottom, #000 90%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 90%, transparent 100%);
+  }
+
+  .hero::after {
+    display: none;
+  }
+
+  .hero__content {
+    padding-top: 1.75rem;
+  }
+
   .page-hero::after {
     background: rgba(15, 20, 35, 0.74);
   }
@@ -1718,7 +1757,11 @@ ol {
   }
 
   .hero {
-    padding: 4rem 0 9rem;
+    padding: 0 0 9rem;
+  }
+
+  .hero__bg {
+    aspect-ratio: 5 / 4;
   }
 
   .highlights__grid,
