@@ -22,7 +22,6 @@
   --radius: 26px;
   --shadow: 0 18px 40px -18px rgba(31, 42, 68, 0.35);
   --font: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --arabic: "Amiri", "Noto Naskh Arabic", serif;
   --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
 }
 
@@ -152,11 +151,6 @@ ol {
   width: 1.2em;
   height: 1.2em;
   flex: none;
-}
-
-.arabic {
-  font-family: var(--arabic);
-  font-weight: 700;
 }
 
 /* Section headings
@@ -652,11 +646,6 @@ ol {
   font-size: 2.3rem;
 }
 
-.badge__num.arabic {
-  font-size: 2.8rem;
-  line-height: 1.2;
-}
-
 .badge__label {
   margin-top: 0.3rem;
   font-size: 0.85rem;
@@ -1030,32 +1019,25 @@ ol {
   animation-delay: -3s;
 }
 
-.value__word {
+.value__icon {
   display: grid;
   place-items: center;
   width: 100%;
   height: 100%;
   border-radius: 50%;
   background: var(--c);
-  font-family: var(--arabic);
-  font-size: 2.1rem;
-  font-weight: 700;
-  line-height: 1;
   color: #fff;
 }
 
-.value h3 {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 500;
+.value__icon svg {
+  width: 52px;
+  height: 52px;
 }
 
-.value__tr {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-size: 0.85rem;
-  font-style: italic;
-  color: var(--c-ink);
+.value h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.35rem;
+  font-weight: 500;
 }
 
 .value p {
@@ -1574,11 +1556,10 @@ ol {
   color: var(--lime);
 }
 
-.footer__ar {
-  font-family: var(--arabic);
-  font-size: 1.5rem;
+.footer__tagline {
+  font-size: 1.1rem;
+  font-weight: 600;
   color: var(--yellow);
-  text-align: left;
 }
 
 .footer__contact li {
