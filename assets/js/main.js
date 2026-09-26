@@ -71,6 +71,132 @@
     revealItems.forEach((el) => el.classList.add("is-in"));
   }
 
+  // Phones: the circles under "Learning with fun" slide along by themselves
+  // (and can be swiped), looping round without jumping back to the start.
+  const slider = document.querySelector(".joy__circles");
+  if (slider) {
+    const phone = window.matchMedia("(max-width: 640px)");
+    const bubbles = [...slider.querySelectorAll(".bubble")];
+    const colourOf = (el) => [...el.classList].find((c) => c.startsWith("c-")) || "";
+    const dots = document.createElement("div");
+    dots.className = "joy__dots";
+    dots.innerHTML = bubbles
+      .map((b, i) => `<button type="button" class="${colourOf(b)}" data-slide="${i}" aria-label="Show ${b.textContent.trim().replace(/"/g, "")}"></button>`)
+      .join("");
+    slider.after(dots);
+
+    const SLIDE_EVERY = 3000;
+    const REST_AFTER_TOUCH = 5000;
+    let active = null;
+    let lastTouch = 0;
+    let visible = false;
+    let playTimer;
+    let settleTimer;
+    let frame;
+
+    const items = () => [...slider.querySelectorAll(".bubble")];
+    const realOf = (el) => (el.dataset.cloneOf ? bubbles[Number(el.dataset.cloneOf)] : el);
+    // scrollLeft that puts an item in the middle
+    const offsetFor = (el) => {
+      const box = slider.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      return slider.scrollLeft + r.left + r.width / 2 - (box.left + box.width / 2);
+    };
+    const nearest = () => items().reduce((best, el) => (Math.abs(offsetFor(el) - slider.scrollLeft) < Math.abs(offsetFor(best) - slider.scrollLeft) ? el : best));
+    const mark = (el) => {
+      active = el;
+      items().forEach((b) => b.classList.toggle("is-active", b === el));
+      const real = realOf(el);
+      [...dots.children].forEach((d, i) => d.setAttribute("aria-current", String(bubbles[i] === real)));
+    };
+    // Put an item in the middle straight away, without animating
+    const jumpTo = (el) => {
+      slider.classList.add("no-anim");
+      mark(el);
+      slider.scrollLeft = offsetFor(el);
+      requestAnimationFrame(() => requestAnimationFrame(() => slider.classList.remove("no-anim")));
+    };
+    const slideTo = (el) => slider.scrollTo({ left: offsetFor(el), behavior: reduceMotion ? "auto" : "smooth" });
+
+    // Once scrolling stops on a copy at either end, swap to the real circle
+    const settle = () => {
+      const el = nearest();
+      if (el.dataset.cloneOf) jumpTo(realOf(el));
+      else mark(el);
+    };
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => mark(nearest()));
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(settle, 150);
+    };
+
+    const play = () => {
+      clearTimeout(playTimer);
+      if (reduceMotion) return;
+      playTimer = setTimeout(() => {
+        if (visible && !document.hidden && Date.now() - lastTouch > REST_AFTER_TOUCH && active) {
+          const list = items();
+          slideTo(list[list.indexOf(active) + 1] || list[0]);
+        }
+        play();
+      }, SLIDE_EVERY);
+    };
+    const touched = () => {
+      lastTouch = Date.now();
+    };
+
+    const makeClone = (el) => {
+      const copy = el.cloneNode(true);
+      copy.removeAttribute("data-reveal");
+      copy.classList.add("is-in");
+      copy.setAttribute("aria-hidden", "true");
+      copy.dataset.cloneOf = String(bubbles.indexOf(el));
+      return copy;
+    };
+
+    const start = () => {
+      slider.prepend(makeClone(bubbles[bubbles.length - 1]));
+      slider.append(makeClone(bubbles[0]));
+      slider.classList.add("is-sliding");
+      jumpTo(bubbles[0]);
+      slider.addEventListener("scroll", onScroll, { passive: true });
+      play();
+    };
+    const stop = () => {
+      clearTimeout(playTimer);
+      clearTimeout(settleTimer);
+      slider.removeEventListener("scroll", onScroll);
+      slider.querySelectorAll("[data-clone-of]").forEach((el) => el.remove());
+      slider.classList.remove("is-sliding");
+      bubbles.forEach((b) => b.classList.remove("is-active"));
+      slider.scrollLeft = 0;
+      active = null;
+    };
+
+    ["touchstart", "touchend", "pointerdown", "wheel"].forEach((type) => slider.addEventListener(type, touched, { passive: true }));
+    dots.addEventListener("click", (event) => {
+      const dot = event.target.closest("[data-slide]");
+      if (!dot) return;
+      touched();
+      slideTo(bubbles[Number(dot.dataset.slide)]);
+    });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver((entries) => (visible = entries[0].isIntersecting), { threshold: 0.4 }).observe(slider);
+    } else {
+      visible = true;
+    }
+    // Re-centre after a rotation (phones also "resize" when the address bar hides)
+    let width = window.innerWidth;
+    window.addEventListener("resize", () => {
+      if (window.innerWidth === width) return;
+      width = window.innerWidth;
+      if (active) jumpTo(realOf(active));
+    });
+    phone.addEventListener("change", (event) => (event.matches ? start() : stop()));
+    if (phone.matches) start();
+  }
+
   // Keep the copyright year current
   document.querySelectorAll("[data-year]").forEach((el) => {
     el.textContent = String(new Date().getFullYear());

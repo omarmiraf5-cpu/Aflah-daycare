@@ -1182,6 +1182,11 @@ ol {
   50% { transform: translateY(-10px); }
 }
 
+/* Dots under the sliding circles (phones only) */
+.joy__dots {
+  display: none;
+}
+
 /* Core values (About page) */
 .values-grid {
   display: grid;
@@ -2055,18 +2060,69 @@ ol {
     margin-top: 0;
   }
 
+  /* The circles become a slider: one in the middle, its neighbours peeking in */
   .joy__circles {
     display: flex;
     gap: 1rem;
-    margin-inline: -1rem;
-    padding: 0.5rem 1rem 1.5rem;
+    margin-inline: calc(50% - 50vw);
+    padding: 0.75rem 18vw 1rem;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .joy__circles::-webkit-scrollbar {
+    display: none;
   }
 
   .bubble {
-    flex: 0 0 62%;
+    flex: 0 0 64vw;
     scroll-snap-align: center;
+  }
+
+  .joy__circles.is-sliding .bubble__ring {
+    transition: scale 0.45s ease;
+  }
+
+  .joy__circles.is-sliding .bubble:not(.is-active) .bubble__ring {
+    scale: 0.84;
+  }
+
+  .joy__circles.no-anim .bubble__ring {
+    transition: none;
+  }
+
+  .joy__dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.15rem;
+  }
+
+  .joy__dots button {
+    display: grid;
+    place-items: center;
+    min-width: 24px;
+    height: 28px;
+    padding: 0 2px;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+
+  .joy__dots button::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--c);
+    opacity: 0.35;
+    transition: width 0.3s ease, opacity 0.3s ease;
+  }
+
+  .joy__dots button[aria-current="true"]::before {
+    width: 28px;
+    opacity: 1;
   }
 
   .bubble:nth-child(even) {
