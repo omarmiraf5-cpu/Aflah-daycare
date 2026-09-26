@@ -21,8 +21,8 @@
   --purple: #7a4fd8;
   --radius: 16px;
   --shadow: 0 1px 2px rgba(20, 38, 74, 0.05), 0 8px 24px -16px rgba(20, 38, 74, 0.25);
-  --font: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --display: "Fredoka", "Poppins", system-ui, sans-serif;
+  --font: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Fredoka", "Nunito", system-ui, sans-serif;
 }
 
 .c-blue { --c: #1d8fd1; --c-soft: #e3f3fc; --c-ink: #0f6ea6; }
@@ -46,7 +46,7 @@ html {
 body {
   margin: 0;
   font-family: var(--font);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.55;
   color: var(--ink);
   background: var(--bg);
@@ -60,9 +60,18 @@ svg {
 
 h1,
 h2,
+h3,
+.btn,
+.side__link,
+.tabbar a,
+.tabs button {
+  font-family: var(--display);
+}
+
+h1,
+h2,
 h3 {
   margin: 0;
-  font-family: var(--display);
   font-weight: 600;
   line-height: 1.2;
   text-wrap: balance;

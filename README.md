@@ -168,7 +168,7 @@ The portals hold personal information about children and families. Keep admin ac
 ## Editing tips
 
 - **Colours** live at the top of `assets/css/styles.css` (`--yellow` for buttons, `--green` for headings, `--blue` and `--sky` for labels, `--red` for the active menu item and badges, and the `.c-blue`, `.c-green`, `.c-orange` and `.c-pink` colour sets for cards).
-- **Fonts** load from Google Fonts: Fredoka for the big hero titles and Poppins for all other text.
+- **Fonts** load from Google Fonts: Fredoka (rounded) for headings, buttons and the menu, Nunito for paragraphs, and Patrick Hand for the small handwritten labels above headings. They are set as `--display`, `--font` and `--hand` at the top of `assets/css/styles.css`.
 - The **header and footer** are repeated in each page. If you change a menu link or contact detail, update all five files.
 - **Photos:** replace the placeholder crops in `assets/images/` with real photos of your classrooms (same file names). The big photo at the top of each page is `aflah-hero.jpg`.
 

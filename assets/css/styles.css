@@ -21,8 +21,9 @@
   --navy: #14264a;
   --radius: 26px;
   --shadow: 0 18px 40px -18px rgba(31, 42, 68, 0.35);
-  --font: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --display: "Fredoka", "Poppins", system-ui, sans-serif;
+  --font: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --hand: "Patrick Hand", "Nunito", cursive;
   --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
 }
 
@@ -53,8 +54,8 @@ body {
   margin: 0;
   overflow-x: hidden;
   font-family: var(--font);
-  font-size: 1rem;
-  line-height: 1.75;
+  font-size: 1.0625rem;
+  line-height: 1.72;
   color: var(--ink);
   background: #fff;
 }
@@ -83,9 +84,29 @@ h1,
 h2,
 h3 {
   margin: 0 0 0.5em;
-  font-weight: 400;
+  font-family: var(--display);
+  font-weight: 600;
   line-height: 1.15;
   text-wrap: balance;
+}
+
+/* Rounded, playful type for everything that isn't running text */
+.nav__link,
+.logo__name,
+.logo__sub,
+.highlight__title,
+.hero__facts strong,
+.badge__num,
+.badge__label,
+.step__num,
+.bubble__text,
+.class-card__age,
+.program-nav a,
+.program__type,
+.schedule time,
+.faq summary,
+.breadcrumb {
+  font-family: var(--display);
 }
 
 p {
@@ -157,16 +178,22 @@ ol {
 /* Section headings
    ========================================================================== */
 
-.label {
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
+/* Small handwritten label above each heading */
+.label,
+.section .label,
+.page-hero .page-hero__label {
+  margin-bottom: 0.35rem;
+  font-family: var(--hand);
+  font-size: clamp(1.45rem, 2.2vw, 1.7rem);
+  font-weight: 400;
+  line-height: 1.15;
   color: var(--blue);
 }
 
 .section h2 {
   font-size: clamp(2.1rem, 4.2vw, 3.1rem);
-  font-weight: 300;
-  line-height: 1.12;
+  font-weight: 600;
+  line-height: 1.1;
   color: var(--green);
 }
 
@@ -195,10 +222,11 @@ ol {
   padding: 0.8rem 1.6rem;
   border: 2px solid transparent;
   border-radius: 999px;
-  font-family: var(--font);
-  font-size: 1rem;
-  font-weight: 500;
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 600;
   line-height: 1.2;
+  letter-spacing: 0.01em;
   text-decoration: none;
   cursor: pointer;
   transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
@@ -354,6 +382,7 @@ ol {
 
 .nav__link {
   padding: 0.5rem 1rem;
+  font-size: 1.05rem;
   font-weight: 500;
   color: #1b1f3b;
   text-decoration: none;
@@ -630,9 +659,7 @@ ol {
   background: linear-gradient(90deg, rgba(15, 20, 35, 0.82) 0%, rgba(15, 20, 35, 0.6) 55%, rgba(15, 20, 35, 0.35) 100%);
 }
 
-.page-hero__label {
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
+.page-hero .page-hero__label {
   color: var(--yellow);
 }
 
@@ -921,7 +948,7 @@ ol {
   justify-content: center;
   gap: 0.6rem;
   font-size: 1.5rem;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.2;
 }
 
@@ -964,8 +991,8 @@ ol {
 
 .feature-card h3 {
   margin: 1rem 0 0.35rem;
-  font-size: 1.25rem;
-  font-weight: 500;
+  font-size: 1.3rem;
+  font-weight: 600;
 }
 
 .feature-card p {
@@ -1197,8 +1224,8 @@ ol {
 
 .value h3 {
   margin: 0;
-  font-size: 1.35rem;
-  font-weight: 500;
+  font-size: 1.4rem;
+  font-weight: 600;
 }
 
 .value__tr {
@@ -1255,7 +1282,7 @@ ol {
 
 .icon-list__item h3 {
   margin: 0 0 0.15rem;
-  font-size: 1.02rem;
+  font-size: 1.12rem;
   font-weight: 600;
 }
 
@@ -1290,7 +1317,7 @@ ol {
   border: 2px solid var(--c);
   border-radius: 999px;
   background: #fff;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--c-ink);
   text-decoration: none;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -1404,8 +1431,8 @@ ol {
 
 .step h3 {
   margin-bottom: 0.4rem;
-  font-size: 1.2rem;
-  font-weight: 500;
+  font-size: 1.3rem;
+  font-weight: 600;
 }
 
 .step p {
@@ -1438,7 +1465,7 @@ ol {
   justify-content: space-between;
   gap: 1rem;
   padding: 1.1rem 0;
-  font-size: 1.08rem;
+  font-size: 1.15rem;
   font-weight: 500;
   list-style: none;
   cursor: pointer;
@@ -1625,8 +1652,8 @@ ol {
 
 .contact-card h2 {
   margin: 1rem 0 0.3rem;
-  font-size: 1.2rem;
-  font-weight: 500;
+  font-size: 1.3rem;
+  font-weight: 600;
 }
 
 .contact-card p {
@@ -1699,7 +1726,7 @@ ol {
 
 .footer h2 {
   margin-bottom: 1rem;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #fff;
 }
@@ -1726,8 +1753,10 @@ ol {
 }
 
 .footer__tagline {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-family: var(--hand);
+  font-size: 1.6rem;
+  font-weight: 400;
+  line-height: 1.15;
   color: var(--yellow);
 }
 
