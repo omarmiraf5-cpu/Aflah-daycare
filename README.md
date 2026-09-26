@@ -1,0 +1,70 @@
+# Aflah Daycare website
+
+A static website for **Aflah Daycare**: *سعادة وشمولية (Happiness & Inclusion)*. It was built from the Aflah logo and follows the usual layout of a licensed childcare centre's site.
+
+It is plain HTML, CSS and a little JavaScript. There is no build step and no framework, so any static host can serve it, including GitHub Pages.
+
+## Pages
+
+| File | What's on it |
+| --- | --- |
+| `index.html` | Home: hero, quick facts, welcome and the meaning of "Aflah", programs, why families choose Aflah, faith and values, a sample day, call to action |
+| `about.html` | Who we are, the tree-of-life logo story, mission and vision, six core values (Raḥmah, Saʿādah, Shumūliyyah, Adab, Iḥsān, Amānah), our educators |
+| `programs.html` | Seedlings (infants), Sprouts (toddlers), Saplings (preschool), Branches (school age), everyday enrichment, full daily schedule |
+| `admissions.html` | Four enrollment steps, tuition and fees, what to bring, FAQ, waitlist form |
+| `contact.html` | Address, phone, email and hours, contact form, what to expect on a tour |
+
+```
+assets/
+  css/styles.css     all styles (colours are CSS variables at the top)
+  js/main.js         mobile menu, scroll effects, form handling
+  images/            hero image, logo, emblem, favicon, touch icon
+```
+
+## Preview locally
+
+Open `index.html` in a browser, or run a small local server:
+
+```sh
+python3 -m http.server 8000
+# then visit http://localhost:8000
+```
+
+## Before going live: replace the placeholders
+
+These values are **placeholders** and appear on every page, in the top bar, the footer and the contact sections. Search and replace them across all `.html` files:
+
+| Placeholder | Replace with |
+| --- | --- |
+| `(555) 123-4567` and `+15551234567` | Your phone number (display format and `tel:` format) |
+| `hello@aflahdaycare.ca` | Your email address (also in each form's `data-mailto`) |
+| `123 Maple Street` / `Your City, Province A1B 2C3` | Your address. The "Get directions" links contain the same address URL-encoded, so update those too. |
+| `7:00 AM – 6:00 PM`, `Mon–Fri` | Your real opening hours |
+
+Also review the copy so it matches how you actually operate: age ranges, program names, meals, staff qualifications, the FAQ answers and the sample schedule.
+
+## Making the forms deliver messages
+
+By default, the contact and waitlist forms open the visitor's email app with the message filled in. To receive submissions directly instead:
+
+1. Create a free form at a service such as [Formspree](https://formspree.io).
+2. Add its URL as the form's `action`, for example:
+   ```html
+   <form class="form" method="post" action="https://formspree.io/f/your-id" data-form ...>
+   ```
+   Do this for the form in both `contact.html` and `admissions.html`.
+
+When `action` is set, `main.js` sends the form in the background and shows a thank-you message on the page.
+
+## Publishing on GitHub Pages
+
+1. On GitHub, go to **Settings → Pages**.
+2. Under **Build and deployment**, choose **Deploy from a branch**, select the branch, and set the folder to `/ (root)`.
+3. Save. The site will appear at `https://<username>.github.io/<repo>/`. You can add a custom domain on the same screen.
+
+## Editing tips
+
+- **Colours** live at the top of `assets/css/styles.css` (`--navy`, `--gold`, `--terracotta` and the playful `--blue`, `--green`, `--orange` and `--pink`).
+- **Fonts** load from Google Fonts: Fredoka for headings, Nunito for body text and Amiri for Arabic.
+- The **header and footer** are repeated in each page. If you change a menu link or contact detail, update all five files.
+- **Photos:** to add real photos of your classrooms, put them in `assets/images/` and swap them in. A good first swap is the hero image on `index.html` (`aflah-hero.jpg`).
