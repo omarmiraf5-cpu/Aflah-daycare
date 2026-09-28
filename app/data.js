@@ -170,9 +170,12 @@ async function createSupabaseApi() {
     if (error) throw toError(error);
     return data;
   };
+  // Empty boxes are saved as null, except text columns the database requires
+  const KEEP_EMPTY = new Set(["last_name", "full_name"]);
+  const cell = (f, v) => (v === "" || v === undefined ? (KEEP_EMPTY.has(f) ? "" : null) : v);
   const save = async (table, row, fields) => {
     const { id } = row;
-    const values = Object.fromEntries(fields.filter((f) => f in row).map((f) => [f, row[f] === "" ? null : row[f]]));
+    const values = Object.fromEntries(fields.filter((f) => f in row).map((f) => [f, cell(f, row[f])]));
     const query = id ? sb.from(table).update(values).eq("id", id) : sb.from(table).insert(values);
     return must(await query.select().single());
   };
@@ -237,6 +240,13 @@ async function createSupabaseApi() {
 
     listChildren: async () => must(await sb.from("children").select("*").order("first_name")),
     saveChild: (child) => save("children", child, CHILD_FIELDS),
+    // Many children at once (spreadsheet import), in batches of 200
+    async importChildren(list) {
+      const rows = list.map((c) => ({ ...Object.fromEntries(CHILD_FIELDS.map((f) => [f, cell(f, c[f])])), monthly_fee: Number(c.monthly_fee || 0) }));
+      const saved = [];
+      for (let i = 0; i < rows.length; i += 200) saved.push(...must(await sb.from("children").insert(rows.slice(i, i + 200)).select()));
+      return saved;
+    },
     deleteChild: (id) => remove("children", id),
 
     listStaff: async () => must(await sb.from("profiles").select("*").order("full_name")),
@@ -439,6 +449,11 @@ function createDemoApi() {
     async saveChild(child) {
       need(isAdmin());
       return upsert("children", blankToNull({ ...child, monthly_fee: Number(child.monthly_fee || 0) }));
+    },
+    async importChildren(list) {
+      await pause();
+      need(isAdmin());
+      return list.map((child) => upsert("children", blankToNull({ ...child, monthly_fee: Number(child.monthly_fee || 0) })));
     },
     async deleteChild(id) {
       need(isAdmin());

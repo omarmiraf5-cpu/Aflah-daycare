@@ -74,7 +74,7 @@ Two private portals sit alongside the website. Both work on phones, tablets and 
 **Admin portal: `/admin/`** (for the director)
 
 - **Dashboard:** children here now, staff on shift, and a *Needs your attention* list with new staff sign-ups to approve, open incident reports and overdue balances.
-- **Children:** enrolled, waitlist and withdrawn children, with room, program, date of birth, monthly fee, parent contacts, allergies and medical notes.
+- **Children:** enrolled, waitlist and withdrawn children, with room, program, date of birth, monthly fee, parent contacts, allergies and medical notes. *Import* adds a whole list at once from an Excel (.xlsx) or CSV file, or from rows pasted out of Excel, Numbers or Google Sheets. It recognises most column headings (or use the downloadable template), works out the program from the child's age when there isn't one, and shows a preview first: rows without a name, children already in the list and unreadable dates or fees are pointed out before anything is saved.
 - **Children's sign in** and **Timesheets:** the same screens staff use, plus *Print all* for every child's timesheet.
 - **Staff:** approve or decline new sign-ups, change roles and deactivate people who leave.
 - **Staff hours:** each educator's weekly hours, and corrections to shift times.

@@ -1373,6 +1373,108 @@ textarea {
   margin-right: auto;
 }
 
+.dlg--wide {
+  width: min(940px, calc(100% - 1.5rem));
+}
+
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sky-ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Importing children */
+.import {
+  display: grid;
+  gap: 1rem;
+}
+
+.import__pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+}
+
+.import__pick .btn:focus-within {
+  outline: 3px solid rgba(29, 143, 209, 0.35);
+  outline-offset: 2px;
+}
+
+.import__options:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem 1rem;
+}
+
+.import__options:empty {
+  display: none;
+}
+
+.import__summary {
+  margin: 0;
+}
+
+.import__note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.import__note.is-error {
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: #fde7ea;
+  color: #a3202f;
+}
+
+.import__table {
+  max-height: 46vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.import__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.import__issue {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.import__issue.is-warn {
+  color: #9a5b00;
+}
+
+.import__issue.is-error {
+  color: #a3202f;
+}
+
+.import__table tr.is-skipped td {
+  background: #fafbfd;
+  color: var(--muted);
+}
+
+.import__table tr.is-skipped .chip {
+  opacity: 0.5;
+}
+
+.import__table tr.is-skipped strong {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1508,6 +1610,7 @@ textarea {
 @media (max-width: 900px) {
   .shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
     background: none;
   }
 
@@ -1606,6 +1709,11 @@ textarea {
 }
 
 @media (max-width: 640px) {
+  .import__table {
+    max-height: none;
+    overflow: visible;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }

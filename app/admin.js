@@ -7,6 +7,7 @@ import {
   childName, avatar, ageFrom, presence, toIso, timeInput,
 } from "./ui.js";
 import { state, roomOf, renderAttendance, renderTimesheets, incidentCard, incidentForm, bindIncidentCards } from "./shared.js";
+import { readFile, parseDelimited, buildImport, templateCsv } from "./import.js";
 
 const PROGRAMS = ["Seedlings", "Sprouts", "Saplings", "Branches"];
 const PROGRAM_LABEL = { Seedlings: "Seedlings (infants)", Sprouts: "Sprouts (toddlers)", Saplings: "Saplings (preschool)", Branches: "Branches (school age)" };
@@ -144,7 +145,11 @@ async function renderChildren(ctx) {
   children.forEach((c) => counts[c.status]++);
   let search = "";
 
-  ctx.setHeader("Children", `${counts.enrolled} enrolled · ${counts.waitlist} on the waitlist`, `<button class="btn btn--yellow" type="button" data-add>${icon("plus")}Add a child</button>`);
+  ctx.setHeader(
+    "Children",
+    `${counts.enrolled} enrolled · ${counts.waitlist} on the waitlist`,
+    `<button class="btn btn--ghost" type="button" data-import>${icon("upload")}Import</button><button class="btn btn--yellow" type="button" data-add>${icon("plus")}Add a child</button>`
+  );
   ctx.view.innerHTML = `
     <div class="toolbar">
       <div class="tabs" role="tablist" style="margin: 0;">
@@ -173,11 +178,12 @@ async function renderChildren(ctx) {
             <td class="num" data-label="Balance">${b && b.balance ? `<span class="chip ${BAL_STATUS[b.status][1]}">${fmtMoney(b.balance)}</span>` : `<span class="muted">${fmtMoney(0)}</span>`}</td>
             <td data-label="Status"><span class="chip ${cls}">${label}</span></td></tr>`;
         }).join("")
-      : `<tr><td colspan="7">${emptyState("users", children.length ? "No children match." : "No children yet. Add your first child to get started.")}</td></tr>`;
+      : `<tr><td colspan="7">${emptyState("users", children.length ? "No children match." : "No children yet. Add a child, or import your list from a spreadsheet.")}</td></tr>`;
   };
 
   const edit = (child) => childForm(ctx, child, () => ctx.refresh());
   $("[data-add]").addEventListener("click", () => edit(null));
+  $("[data-import]").addEventListener("click", () => importChildren(ctx, children));
   $$("[data-tab]").forEach((b) => b.addEventListener("click", () => {
     childTab = b.dataset.tab;
     ctx.refresh();
@@ -196,6 +202,145 @@ async function renderChildren(ctx) {
     if (tr && e.key === "Enter") edit(children.find((c) => c.id === tr.dataset.child));
   });
   draw();
+}
+
+// Add many children at once from a spreadsheet file or pasted rows
+function importChildren(ctx, existing) {
+  const { api } = ctx;
+  let rows = null;
+  let result = null;
+  const choice = { status: "enrolled", program: "Seedlings", dayFirst: false };
+  const kids = (n) => `${n} ${n === 1 ? "child" : "children"}`;
+
+  return openDialog({
+    title: "Import children",
+    body: `
+      <div class="import">
+        <p>Add your whole list at once from Excel, Numbers or Google Sheets. The first row should be the column headings. Your own headings are fine, like <em>Child's name</em>, <em>Date of birth</em>, <em>Parent</em> and <em>Phone</em>, or <button type="button" class="link-btn" data-template>download the template</button>.</p>
+        <div class="import__pick">
+          <label class="btn btn--ghost">${icon("upload")}Choose a file<input type="file" class="visually-hidden" data-file accept=".xlsx,.csv,.tsv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+          <span class="muted" data-file-name>Excel (.xlsx) or CSV file</span>
+        </div>
+        ${field("Or paste the rows here, headings included", `<textarea data-paste rows="4" placeholder="Copy the rows in your spreadsheet, then paste them here"></textarea>`, "full")}
+        <div class="import__options" data-options hidden></div>
+        <div data-preview aria-live="polite"></div>
+      </div>`,
+    submitLabel: "Add children",
+    onReady: (dlg) => {
+      dlg.classList.add("dlg--wide");
+      const submit = $('[type="submit"]', dlg);
+      const preview = $("[data-preview]", dlg);
+      const optionsBox = $("[data-options]", dlg);
+      const paste = $("[data-paste]", dlg);
+      const fileInput = $("[data-file]", dlg);
+      const fileName = $("[data-file-name]", dlg);
+
+      const showError = (message) => {
+        result = null;
+        optionsBox.hidden = true;
+        preview.innerHTML = `<p class="import__note is-error">${esc(message)}</p>`;
+        submit.disabled = true;
+        submit.textContent = "Add children";
+      };
+
+      const draw = () => {
+        result = rows ? buildImport(rows, { ...choice, existing }) : null;
+        if (result?.error) return showError(result.error);
+        const ready = result ? result.ready.length : 0;
+        submit.disabled = !ready;
+        submit.textContent = ready ? `Add ${kids(ready)}` : "Add children";
+        optionsBox.hidden = !result;
+        if (!result) {
+          preview.innerHTML = "";
+          return;
+        }
+
+        // Choices only appear when the file leaves something open
+        optionsBox.innerHTML = [
+          !result.needsStatus ? "" : field("Children without a status", `<select data-choice="status">${options([["enrolled", "Enrolled"], ["waitlist", "Waitlist"]], choice.status)}</select>`),
+          result.needsProgram ? field("Program when there's no program or date of birth", `<select data-choice="program">${options(PROGRAMS.map((p) => [p, PROGRAM_LABEL[p]]), choice.program)}</select>`) : "",
+          result.askDateOrder ? field("Dates like 03/04/2021 mean", `<select data-choice="dayFirst">${options([["", "March 4, 2021 (month first)"], ["1", "3 April 2021 (day first)"]], choice.dayFirst ? "1" : "")}</select>`) : "",
+        ].join("");
+
+        const skipped = result.items.filter((i) => i.errors.length).length;
+        const dupes = result.items.filter((i) => !i.errors.length && i.duplicate).length;
+        const toCheck = result.items.filter((i) => i.ok && i.warnings.length).length;
+        preview.innerHTML = `
+          <p class="import__summary"><strong>${ready ? `${kids(ready)} ready to add` : "Nobody to add yet"}</strong>${dupes ? ` · ${dupes} already in your list` : ""}${skipped ? ` · ${skipped} can't be added` : ""}${toCheck ? ` · ${toCheck} to check` : ""}</p>
+          ${result.ignored.length ? `<p class="import__note">Columns not imported: ${result.ignored.map(esc).join(", ")}</p>` : ""}
+          <div class="table-wrap import__table"><table class="table table--stack">
+            <thead><tr><th>Row</th><th>Child</th><th>Program</th><th>Parent / guardian</th><th>Status</th></tr></thead>
+            <tbody>${result.items.map((item) => {
+              const c = item.child;
+              const notes = [
+                ...item.errors.map((e) => `<small class="import__issue is-error">Won't be added: ${esc(e)}</small>`),
+                item.duplicate && !item.errors.length ? `<small class="import__issue">Skipped: ${esc(item.duplicate)}</small>` : "",
+                ...(item.ok ? item.warnings.map((w) => `<small class="import__issue is-warn">${esc(w)}</small>`) : []),
+              ].join("");
+              const [label, cls] = STATUS[c.status];
+              return `<tr class="${item.ok ? "" : "is-skipped"}">
+                <td data-label="Row" class="muted">${item.line}</td>
+                <td class="stack-main"><strong>${esc(childName(c) || "No name")}</strong>${c.date_of_birth ? `<small class="muted" style="display: block;">Born ${fmtDay(c.date_of_birth, { month: "short", day: "numeric", year: "numeric" })} · ${esc(ageFrom(c.date_of_birth))}</small>` : ""}${notes}</td>
+                <td data-label="Program">${esc(c.program)}${c.room ? `<small class="muted" style="display: block;">${esc(c.room)}</small>` : ""}</td>
+                <td data-label="Parent">${esc(c.guardian_name || "")}<small class="muted" style="display: block;">${esc(c.guardian_phone || c.guardian_email || "")}</small></td>
+                <td data-label="Status"><span class="chip ${cls}">${label}</span></td></tr>`;
+            }).join("")}</tbody>
+          </table></div>`;
+      };
+
+      optionsBox.addEventListener("change", (e) => {
+        const key = e.target.dataset.choice;
+        if (!key) return;
+        choice[key] = key === "dayFirst" ? e.target.value === "1" : e.target.value;
+        draw();
+      });
+
+      $("[data-template]", dlg).addEventListener("click", () => {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([templateCsv()], { type: "text/csv" }));
+        link.download = "aflah-children-template.csv";
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+      });
+
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        fileName.textContent = file.name;
+        paste.value = "";
+        try {
+          rows = await readFile(file);
+        } catch (err) {
+          rows = null;
+          return showError(err.message);
+        }
+        draw();
+      });
+
+      let timer;
+      paste.addEventListener("input", () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          fileInput.value = "";
+          fileName.textContent = "Excel (.xlsx) or CSV file";
+          rows = paste.value.trim() ? parseDelimited(paste.value) : null;
+          draw();
+        }, 250);
+      });
+
+      draw();
+    },
+    onSubmit: async () => {
+      if (!result?.ready?.length) throw new Error("Choose a file or paste your list first.");
+      const saved = await api.importChildren(result.ready);
+      const statuses = new Set(saved.map((c) => c.status));
+      childTab = statuses.size === 1 ? [...statuses][0] : "all";
+      toast(`${kids(saved.length)} added`);
+      ctx.refresh();
+    },
+  });
 }
 
 function childForm(ctx, child, onSaved) {
