@@ -41,7 +41,7 @@ These values are **placeholders** and appear on every page, in the footer and on
 | Placeholder | Replace with |
 | --- | --- |
 | `(555) 123-4567` and `+15551234567` | Your phone number (display format and `tel:` format) |
-| `hello@aflahdaycare.ca` | Your email address (also in each form's `data-mailto`) |
+| `registration@aflahdaycare.com` | Your email address (also in each form's `data-mailto`). It forwards to the owner's Gmail through Cloudflare Email Routing. |
 | `123 Maple Street` / `Your City, Province A1B 2C3` | Your address. The "Get directions" links contain the same address URL-encoded, so update those too. |
 | `7:00 AM – 6:00 PM`, `Mon–Fri` | Your real opening hours |
 
