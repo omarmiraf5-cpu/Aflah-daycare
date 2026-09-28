@@ -124,23 +124,29 @@ The portals store their data in [Supabase](https://supabase.com), a hosted Postg
    supabaseAnonKey: "your-anon-or-publishable-key",
    ```
    This key is meant to be public and is safe in the website code: the security rules in the database are what protect the records. Never put the **service_role** or **secret** key in the site.
-4. **Set the login links.** In **Authentication → URL Configuration**, set *Site URL* to `https://aflah-daycare.vercel.app` and add these *Redirect URLs*:
+4. **Set the login links.** In **Authentication → URL Configuration**, set *Site URL* to `https://aflahdaycare.com` and add these *Redirect URLs*:
    ```
-   https://aflah-daycare.vercel.app/admin/
-   https://aflah-daycare.vercel.app/staff/
+   https://aflahdaycare.com/**
+   https://www.aflahdaycare.com/**
+   https://aflah-daycare.vercel.app/**
    ```
-   Use your own domain here instead if you add one. These make the confirmation and password reset emails bring people back to the right portal.
+   These make the confirmation and password reset emails bring people back to the right portal.
 5. **Publish.** Commit and push `app/config.js`. Vercel redeploys and the portals switch from demo mode to the real database.
 6. **Make yourself the admin.** Open `/admin/`, choose *Create an account*, and confirm your email. New accounts start as *waiting for approval*, so make the first admin yourself: in **SQL Editor**, run
    ```sql
-   update public.profiles set role = 'admin' where email = 'you@example.com';
+   update public.profiles set role = 'admin' where email = 'admin.aflahdaycare@gmail.com';
    ```
-   with your own email, then sign in again.
+   using the director's email, then sign in again.
 7. **Set the daycare's location.** At the daycare, open *Settings* in the admin portal, tap *Use my current location*, check the pin on the map and save. Staff can't sign in or out until this is done.
 8. **Add your staff.** Each educator opens `/staff/` and creates an account. They appear on your dashboard under *Needs your attention*; approve them as **Staff** (or **Admin** for another director). Nobody can see any records until an admin approves them.
 9. **Add your children** under *Children*, then set up tuition under *Payments*.
 
-Supabase's built-in email sender only allows a few emails an hour. Before inviting all your staff, set up your own email sender under **Authentication → Emails → SMTP Settings** (for example with Resend, Postmark or your email provider).
+**Emails from Supabase.** Supabase's built-in email sender only delivers to people on your Supabase team, and only a few an hour, so confirmation and password reset emails won't reach the director or staff. Until you connect your own email sender:
+
+- Turn off **Authentication → Sign In / Providers → Email → Confirm email**. New accounts then go straight to *waiting for approval*, which is safe because nobody sees any records until an admin approves them.
+- If someone forgets their password, set a new one for them under **Authentication → Users**.
+
+To send these emails properly, set up your own sender under **Authentication → Emails → SMTP Settings** (for example with Resend, Postmark or a Gmail app password).
 
 ### Who can do what
 
