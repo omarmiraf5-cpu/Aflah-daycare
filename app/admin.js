@@ -904,7 +904,7 @@ async function renderSettings(ctx) {
     }
     const d = 0.004;
     const src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - d * 1.4},${lat - d},${lng + d * 1.4},${lat + d}&layer=mapnik&marker=${lat},${lng}`;
-    $("#map-link").href = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=18/${lat}/${lng}`;
+    $("#map-link").href = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
     $("#site-map").innerHTML = `<iframe title="Map of the daycare's location" src="${esc(src)}" loading="lazy"></iframe>
       <p class="hint">The pin should be on the daycare's building. Staff count as at the daycare within ${esc(form.site_radius_m.value)} m of it.</p>`;
   };

@@ -104,6 +104,11 @@ textarea {
   flex: none;
 }
 
+/* Elements with the hidden attribute stay hidden, even buttons that set display */
+[hidden] {
+  display: none !important;
+}
+
 .visually-hidden {
   position: absolute !important;
   width: 1px;
