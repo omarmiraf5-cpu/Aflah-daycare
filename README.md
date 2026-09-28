@@ -100,7 +100,7 @@ Staff can sign in and out of their shifts, and sign children in and out, only wh
 - Directors (admins) can sign in, sign out and correct times from anywhere. If someone forgets to sign out before leaving, a director corrects it under *Staff hours*.
 - The portal doesn't keep a record of where anyone was. It only checks the distance at the moment of signing in or out.
 
-Set it up in the admin portal under **Settings**: stand inside the daycare and tap *Use my current location* (or paste the location from Google Maps), check the pin on the map, and save. Until the location is set, staff can't sign in or out, and the dashboard reminds you. If staff inside the building are told they're too far away, choose a larger distance. You can also turn the rule off there.
+Set it up in the admin portal under **Settings**: stand inside the daycare and tap *Use my current location*, or tap *Find* to look up the daycare's address (it's filled in from `siteAddress` in `app/config.js`), or paste the location from Google Maps or Apple Maps. Check the pin on the map, and save. Until the location is set, staff can't sign in or out, and the dashboard reminds you. If staff inside the building are told they're too far away, choose a larger distance. You can also turn the rule off there.
 
 Phones and tablets work best. A desktop computer without Wi-Fi often can't tell where it is precisely enough to pass the check.
 

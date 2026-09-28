@@ -1,5 +1,6 @@
 // Admin (director) portal: dashboard, children, staff, attendance, timesheets,
 // staff hours, payments, incident reviews and settings.
+import { CONFIG } from "./config.js";
 import { dayStr, ROOMS, browserPosition, fmtDistance } from "./data.js";
 import {
   $, $$, esc, icon, toast, openDialog, confirmDialog, field, options, emptyState, startPortal,
@@ -870,7 +871,11 @@ async function renderSettings(ctx) {
           <div class="form-section">Daycare location</div>
           <div class="site-form__here">
             <button class="btn btn--ghost" type="button" data-here>${icon("locate")}Use my current location</button>
-            <p class="hint" id="here-hint">Stand inside the daycare and tap this. Or, in Google Maps, right-click (or press and hold) the building, tap the numbers to copy them, and paste them into Latitude.</p>
+            <p class="hint" id="here-hint">Stand inside the daycare and tap this. Not there? Find the address below instead.</p>
+          </div>
+          <div class="site-form__find">
+            ${field("Or find the daycare's address", `<span class="find-row"><input name="site_address" autocomplete="off" placeholder="Street address and city" value="${esc(CONFIG.siteAddress || "")}"><button class="btn btn--ghost" type="button" data-find>${icon("search")}Find</button></span>`)}
+            <p class="hint" id="find-hint">You can also copy the location from Google Maps or Apple Maps (press and hold the building, then copy the numbers) and paste it into Latitude.</p>
           </div>
           <div class="form-grid">
             ${field("Latitude", `<input name="site_lat" inputmode="decimal" autocomplete="off" placeholder="e.g. 43.65320" value="${settings.site_lat ?? ""}">`)}
@@ -909,12 +914,24 @@ async function renderSettings(ctx) {
       <p class="hint">The pin should be on the daycare's building. Staff count as at the daycare within ${esc(form.site_radius_m.value)} m of it.</p>`;
   };
 
-  // "43.6532, -79.3832" (as Google Maps copies it) fills both boxes
+  // A pasted location fills both boxes: "43.6532, -79.3832" (Google Maps),
+  // "43.6532° N, 79.3832° W" (Apple Maps) or 43°39'11.5"N 79°22'59.5"W
+  const parsePair = (text) => {
+    const t = String(text).trim();
+    const plain = t.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+    if (plain) return [plain[1], plain[2]];
+    const part = String.raw`(\d+(?:\.\d+)?)\s*°\s*(?:(\d+(?:\.\d+)?)\s*['′]\s*)?(?:(\d+(?:\.\d+)?)\s*["″]\s*)?([NSEW])`;
+    const m = t.match(new RegExp(`^${part}\\s*,?\\s*${part}$`, "i"));
+    if (!m) return null;
+    const value = (deg, min, sec, dir) => String(Number(((Number(deg) + Number(min || 0) / 60 + Number(sec || 0) / 3600) * (/[SW]/i.test(dir) ? -1 : 1)).toFixed(6)));
+    const first = value(m[1], m[2], m[3], m[4]);
+    const second = value(m[5], m[6], m[7], m[8]);
+    return /[NS]/i.test(m[4]) ? [first, second] : [second, first];
+  };
   const splitPair = (text) => {
-    const pair = text.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+    const pair = parsePair(text);
     if (!pair) return false;
-    form.site_lat.value = pair[1];
-    form.site_lng.value = pair[2];
+    [form.site_lat.value, form.site_lng.value] = pair;
     drawMap();
     return true;
   };
@@ -945,6 +962,42 @@ async function renderSettings(ctx) {
       hint.textContent = err.message;
     }
     button.disabled = false;
+  });
+
+  // Look the address up on OpenStreetMap
+  const find = async () => {
+    const button = $("[data-find]");
+    const hint = $("#find-hint");
+    const address = form.site_address.value.trim();
+    if (!address) {
+      hint.textContent = "Type the daycare's street address and city first.";
+      return;
+    }
+    button.disabled = true;
+    hint.textContent = "Looking up the address…";
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ca&q=${encodeURIComponent(address)}`;
+      const response = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error(`Search failed (${response.status})`);
+      const [place] = await response.json();
+      if (!place) {
+        hint.textContent = "That address wasn't found. Check the spelling, or try just the street and city.";
+      } else {
+        form.site_lat.value = Number(place.lat).toFixed(6);
+        form.site_lng.value = Number(place.lon).toFixed(6);
+        drawMap();
+        hint.textContent = `Found: ${place.display_name}. Check the pin is on the daycare's building, then save. At the daycare, "Use my current location" is the most precise.`;
+      }
+    } catch {
+      hint.textContent = "The address couldn't be looked up right now. Check your internet connection and try again.";
+    }
+    button.disabled = false;
+  };
+  $("[data-find]").addEventListener("click", find);
+  form.site_address.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    find();
   });
 
   form.addEventListener("submit", async (e) => {

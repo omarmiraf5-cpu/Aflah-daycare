@@ -8,6 +8,9 @@ export const CONFIG = {
   supabaseUrl: "https://goaclsmjpnerkbjvjqiz.supabase.co",
   supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvYWNsc21qcG5lcmtianZqcWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MTY0MDAsImV4cCI6MjEwNjA5MjQwMH0.niQ1ACJuDzrf-ckUEuPHsLgIb9p51MoDQPjTjArvvwc",
 
+  // The daycare's address, used in Settings to find it on the map
+  siteAddress: "11610 38 Street NW, Edmonton, AB T5W 2H1",
+
   // How money and dates are shown
   locale: "en-CA",
   currency: "CAD",
