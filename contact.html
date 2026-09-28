@@ -69,8 +69,9 @@
           <p class="label">Send Us a Message</p>
           <h2 style="color: var(--green); font-weight: 300;">How can we help?</h2>
           <p class="form-hint">Fields marked <span class="req">*</span> are required.</p>
-          <!-- To receive submissions without an email app, set this form's action to a form service URL, e.g. action="https://formspree.io/f/your-id" (see README). -->
-          <form class="form" method="post" data-form data-mailto="registration@aflahdaycare.com" data-subject="Website enquiry — Aflah Daycare" data-success="Thank you for reaching out! We’ll get back to you within one business day.">
+          <form class="form" method="post" action="https://formsubmit.co/registration@aflahdaycare.com" data-form data-endpoint="https://formsubmit.co/ajax/registration@aflahdaycare.com" data-mailto="registration@aflahdaycare.com" data-success="Thank you for reaching out! We’ll get back to you within one business day.">
+            <input type="hidden" name="_subject" value="Website enquiry — Aflah Daycare">
+            <input type="hidden" name="_template" value="table">
             <div class="form-row">
               <div class="field"><label for="c-name">Your name <span class="req">*</span></label><input id="c-name" name="name" type="text" autocomplete="name" required></div>
               <div class="field"><label for="c-email">Email <span class="req">*</span></label><input id="c-email" name="email" type="email" autocomplete="email" required></div>
@@ -88,7 +89,7 @@
               </div>
             </div>
             <div class="field"><label for="c-message">Message <span class="req">*</span></label><textarea id="c-message" name="message" required placeholder="Tell us about your child, the program you’re interested in, or a good time to visit…"></textarea></div>
-            <label class="honeypot" aria-hidden="true">Leave this field empty<input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>
+            <label class="honeypot" aria-hidden="true">Leave this field empty<input type="text" name="_honey" tabindex="-1" autocomplete="off"></label>
             <div><button class="btn btn--primary" type="submit">Send Message</button></div>
             <p class="form-status" role="status" aria-live="polite" tabindex="-1"></p>
           </form>

@@ -1638,6 +1638,17 @@ ol {
   color: #a3202f;
 }
 
+.form-status a {
+  color: inherit;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* Focused by script so screen readers announce it; no ring needed */
+.form-status:focus {
+  outline: none;
+}
+
 /* Contact page
    ========================================================================== */
 

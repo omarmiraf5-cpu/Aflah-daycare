@@ -144,8 +144,9 @@
           <p class="label">Join the Waitlist</p>
           <h2 style="color: var(--green); font-weight: 300;">Reserve your child’s spot</h2>
           <p class="form-hint">Fields marked <span class="req">*</span> are required. We’ll be in touch as soon as a space becomes available.</p>
-          <!-- To receive submissions without an email app, set this form's action to a form service URL, e.g. action="https://formspree.io/f/your-id" (see README). -->
-          <form class="form" method="post" data-form data-mailto="registration@aflahdaycare.com" data-subject="Waitlist request — Aflah Daycare" data-success="Thank you! Your child has been added to our waitlist. We’ll be in touch soon, in shā’ Allāh.">
+          <form class="form" method="post" action="https://formsubmit.co/registration@aflahdaycare.com" data-form data-endpoint="https://formsubmit.co/ajax/registration@aflahdaycare.com" data-mailto="registration@aflahdaycare.com" data-success="Thank you! Your child has been added to our waitlist. We’ll be in touch soon, in shā’ Allāh.">
+            <input type="hidden" name="_subject" value="Waitlist request — Aflah Daycare">
+            <input type="hidden" name="_template" value="table">
             <div class="form-row">
               <div class="field"><label for="w-parent">Parent / guardian name <span class="req">*</span></label><input id="w-parent" name="parent_name" type="text" autocomplete="name" required></div>
               <div class="field"><label for="w-email">Email <span class="req">*</span></label><input id="w-email" name="email" type="email" autocomplete="email" required></div>
@@ -182,7 +183,7 @@
               </fieldset>
             </div>
             <div class="field"><label for="w-notes">Anything else we should know?</label><textarea id="w-notes" name="notes" placeholder="Allergies, siblings already enrolled, questions…"></textarea></div>
-            <label class="honeypot" aria-hidden="true">Leave this field empty<input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>
+            <label class="honeypot" aria-hidden="true">Leave this field empty<input type="text" name="_honey" tabindex="-1" autocomplete="off"></label>
             <div><button class="btn btn--primary" type="submit">Join the Waitlist</button></div>
             <p class="form-status" role="status" aria-live="polite" tabindex="-1"></p>
           </form>

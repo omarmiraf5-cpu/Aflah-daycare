@@ -209,17 +209,19 @@
     topicSelect.value = topic;
   }
 
-  // Forms: post to a form service when an action URL is set (e.g. Formspree),
-  // otherwise open the visitor's email app with the message filled in.
+  // Forms: send in the background to the form service in data-endpoint, which
+  // emails the daycare. If that fails, offer a link that opens the visitor's
+  // email app with the message filled in.
   const humanize = (name) => name.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
   document.querySelectorAll("form[data-form]").forEach((form) => {
     const status = form.querySelector(".form-status");
     const submit = form.querySelector('[type="submit"]');
+    const submitLabel = submit.textContent;
 
-    const showStatus = (type, message) => {
+    const showStatus = (type, ...content) => {
       status.className = `form-status is-${type}`;
-      status.textContent = message;
+      status.replaceChildren(...content);
       status.focus();
     };
 
@@ -231,37 +233,57 @@
       }
 
       const data = new FormData(form);
-      if (data.get("_gotcha")) return; // spam bot filled the hidden field
+      if (data.get("_honey")) return; // spam bot filled the hidden field
 
-      const endpoint = form.getAttribute("action");
-      if (endpoint) {
-        submit.disabled = true;
-        try {
-          const response = await fetch(endpoint, {
-            method: "POST",
-            body: data,
-            headers: { Accept: "application/json" },
-          });
-          if (!response.ok) throw new Error(`Request failed: ${response.status}`);
-          form.reset();
-          showStatus("success", form.dataset.success);
-        } catch (error) {
-          showStatus("error", "Sorry, your message could not be sent. Please call or email us instead.");
-        } finally {
-          submit.disabled = false;
-        }
-        return;
-      }
-
+      // Visible fields, with ticked boxes that share a name joined together
       const fields = new Map();
       for (const [name, value] of data) {
         if (name.startsWith("_") || !String(value).trim()) continue;
         fields.set(name, fields.has(name) ? `${fields.get(name)}, ${value}` : String(value));
       }
-      const body = [...fields].map(([name, value]) => `${humanize(name)}: ${value}`).join("\n");
-      const subject = encodeURIComponent(form.dataset.subject || "Website enquiry");
-      window.location.href = `mailto:${form.dataset.mailto}?subject=${subject}&body=${encodeURIComponent(body)}`;
-      showStatus("success", "Your email app should now open with your message ready to send. Just press send!");
+      // Dropdowns: send the wording the visitor picked ("Book a tour"), not its code ("tour")
+      form.querySelectorAll("select").forEach((select) => {
+        if (fields.has(select.name) && select.selectedOptions[0]) fields.set(select.name, select.selectedOptions[0].text);
+      });
+      const subject = data.get("_subject") || "Website enquiry";
+
+      const emailLink = () => {
+        const body = [...fields].map(([name, value]) => `${humanize(name)}: ${value}`).join("\n");
+        const link = document.createElement("a");
+        link.href = `mailto:${form.dataset.mailto}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        link.textContent = `email it to ${form.dataset.mailto}`;
+        return link;
+      };
+
+      const endpoint = form.dataset.endpoint;
+      if (!endpoint) {
+        showStatus("error", "Please ", emailLink(), " — your message will be filled in for you.");
+        return;
+      }
+
+      submit.disabled = true;
+      submit.textContent = "Sending…";
+      try {
+        const who = fields.get("parent_name") || fields.get("name");
+        const payload = { _subject: who ? `${subject}: ${who}` : subject, _template: data.get("_template") || "table", _captcha: "false" };
+        if (fields.has("email")) payload._replyto = fields.get("email");
+        fields.forEach((value, name) => (payload[humanize(name)] = value));
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json().catch(() => ({}));
+        // Formspree answers { ok: true }; FormSubmit answers { success: "true" | "false" }
+        if (!response.ok || String(result.success) === "false") throw new Error(result.message || `Request failed: ${response.status}`);
+        form.reset();
+        showStatus("success", form.dataset.success);
+      } catch (error) {
+        showStatus("error", "Sorry, your message didn’t go through. Please try again, or ", emailLink(), " — your message will be filled in for you.");
+      } finally {
+        submit.disabled = false;
+        submit.textContent = submitLabel;
+      }
     });
   });
 })();

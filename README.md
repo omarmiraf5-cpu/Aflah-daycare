@@ -49,16 +49,12 @@ Also review the copy so it matches how you actually operate: age ranges, program
 
 ## Making the forms deliver messages
 
-By default, the contact and waitlist forms open the visitor's email app with the message filled in. To receive submissions directly instead:
+The contact and waitlist forms are emailed to `registration@aflahdaycare.com` by [FormSubmit](https://formsubmit.co), a free service that needs no account. Cloudflare Email Routing forwards that address to the owner's Gmail.
 
-1. Create a free form at a service such as [Formspree](https://formspree.io).
-2. Add its URL as the form's `action`, for example:
-   ```html
-   <form class="form" method="post" action="https://formspree.io/f/your-id" data-form ...>
-   ```
-   Do this for the form in both `contact.html` and `admissions.html`.
-
-When `action` is set, `main.js` sends the form in the background and shows a thank-you message on the page.
+- `main.js` sends each form in the background to the form's `data-endpoint` and shows a thank-you message on the page. If sending fails, the visitor gets a link that opens their email app with the message filled in.
+- **Activation (once):** the first time a form is submitted, FormSubmit emails an **Activate Form** button to `registration@aflahdaycare.com`. Nothing is delivered until it is clicked, so submit a test yourself as soon as the site is live.
+- Each email is titled with the form (`_subject`: "Waitlist request" or "Website enquiry") and the sender's name. Replying goes straight to the parent.
+- To use another service such as Formspree, change `action` and `data-endpoint` on both forms (in `contact.html` and `admissions.html`) to its URL.
 
 ## Publishing on Vercel
 
