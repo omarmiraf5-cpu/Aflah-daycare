@@ -34,18 +34,18 @@ python3 -m http.server 8000
 # then visit http://localhost:8000
 ```
 
-## Before going live: replace the placeholders
+## Contact details
 
-These values are **placeholders** and appear on every page, in the footer and on the contact page. Search and replace them across all `.html` files:
+The daycare's details appear on every page, in the footer and on the contact page:
 
-| Placeholder | Replace with |
+| Detail | Value |
 | --- | --- |
-| `(555) 123-4567` and `+15551234567` | Your phone number (display format and `tel:` format) |
-| `registration@aflahdaycare.com` | Your email address (also in each form's `data-mailto`). It forwards to the owner's Gmail through Cloudflare Email Routing. |
-| `123 Maple Street` / `Your City, Province A1B 2C3` | Your address. The "Get directions" links contain the same address URL-encoded, so update those too. |
-| `7:00 AM – 6:00 PM`, `Mon–Fri` | Your real opening hours |
+| Phone | `(780) 200-4818` (`tel:+17802004818`) |
+| Email | `admin.aflahdaycare@gmail.com` (also each form's `data-mailto`, used if sending a form fails) |
+| Address | `11610 38 Street NW, Edmonton, AB T5W 2H1`. The "Get directions" links contain the same address URL-encoded. |
+| Hours | `Mon – Fri · 7:00 AM – 6:00 PM` (still a placeholder: check the real opening hours) |
 
-Also review the copy so it matches how you actually operate: age ranges, program names, meals, staff qualifications, the FAQ answers and the sample schedule.
+The pages are generated, so to change a detail everywhere, search and replace it across all `.html` files. Also review the copy so it matches how the daycare actually operates: age ranges, program names, meals, staff qualifications, the FAQ answers and the sample schedule.
 
 ## Making the forms deliver messages
 

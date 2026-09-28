@@ -1682,7 +1682,7 @@ ol {
 .contact-card a {
   font-weight: 500;
   color: var(--c-ink);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .contact-layout {
