@@ -43,7 +43,7 @@ The daycare's details appear on every page, in the footer and on the contact pag
 | Phone | `(780) 200-4818` (`tel:+17802004818`) |
 | Email | `admin.aflahdaycare@gmail.com` (also each form's `data-mailto`, used if sending a form fails) |
 | Address | `11610 38 Street NW, Edmonton, AB T5W 2H1`. The "Get directions" links contain the same address URL-encoded. |
-| Hours | `Mon – Fri · 7:00 AM – 6:00 PM` (still a placeholder: check the real opening hours) |
+| Hours | `Mon – Fri · 6:30 AM – 6:00 PM` |
 
 The pages are generated, so to change a detail everywhere, search and replace it across all `.html` files. Also review the copy so it matches how the daycare actually operates: age ranges, program names, meals, staff qualifications, the FAQ answers and the sample schedule.
 
